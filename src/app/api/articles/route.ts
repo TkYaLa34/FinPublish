@@ -35,8 +35,8 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(dbArticles.length > 0 ? dbArticles : mockArticles);
-  } catch (error) {
-    console.warn('Database query failed in API, falling back to mock articles:', error);
+  } catch (_error) {
+    console.warn('Database query failed in API, falling back to mock articles:', _error);
     return NextResponse.json(mockArticles);
   }
 }
@@ -51,7 +51,6 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Create a mock user in Supabase/Prisma DB if it does not exist to satisfy Author relation!
       try {
         await prisma.user.upsert({
           where: { id: authorId },
@@ -63,8 +62,8 @@ export async function POST(request: Request) {
             role: 'AUTHOR'
           }
         });
-      } catch (upsertErr) {
-        console.warn('Failed to upsert mock author:', upsertErr);
+      } catch (_upsertErr) {
+        console.warn('Failed to upsert mock author:', _upsertErr);
       }
 
       const newArticle = await prisma.article.create({
@@ -79,8 +78,8 @@ export async function POST(request: Request) {
         include: { author: true },
       });
       return NextResponse.json(newArticle, { status: 201 });
-    } catch (dbError) {
-      console.warn('Database insert failed, using mock insertion:', dbError);
+    } catch (_dbError) {
+      console.warn('Database insert failed, using mock insertion:', _dbError);
       const newMock: any = {
         id: `mock-${Date.now()}`,
         slug,
@@ -96,7 +95,7 @@ export async function POST(request: Request) {
       mockArticles = [newMock, ...mockArticles];
       return NextResponse.json(newMock, { status: 201 });
     }
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -123,8 +122,8 @@ export async function PUT(request: Request) {
         include: { author: true },
       });
       return NextResponse.json(updatedArticle);
-    } catch (dbError) {
-      console.warn('Database update failed, using mock update:', dbError);
+    } catch (_dbError) {
+      console.warn('Database update failed, using mock update:', _dbError);
       const index = mockArticles.findIndex(a => a.id === id);
       if (index !== -1) {
         mockArticles[index] = {
@@ -140,7 +139,7 @@ export async function PUT(request: Request) {
       }
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Editor } from '@/components/editor/editor';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { FinancialData } from '@/types/finance';
 import { Article } from '@/types/article';
-import { Edit, Eye, Plus, Check, Loader2, RefreshCw, X } from 'lucide-react';
+import { Edit, Plus, Loader2, RefreshCw, X } from 'lucide-react';
 
 export default function AuthorDashboard() {
   const [tickers, setTickers] = useState<FinancialData[]>([]);
@@ -38,8 +38,8 @@ export default function AuthorDashboard() {
       if (financeData && financeData.length > 0 && !selectedTickerSymbol) {
         setSelectedTickerSymbol(financeData[0].symbol);
       }
-    } catch (err) {
-      console.error('Error loading dashboard datasets:', err);
+    } catch (_err) {
+      console.error('Error loading dashboard datasets:', _err);
     }
   };
 
@@ -105,7 +105,7 @@ export default function AuthorDashboard() {
         const err = await res.json();
         setSubmitMessage(`Failed to save: ${err.error || 'Unknown error'}`);
       }
-    } catch (err) {
+    } catch (_err) {
       setSubmitMessage('Failed to make API request.');
     } finally {
       setSubmitting(false);

@@ -84,8 +84,8 @@ export async function GET() {
     let dbData;
     try {
       dbData = await prisma.financialData.findMany();
-    } catch (e) {
-      console.warn('Database query failed for finance data, using local list:', e);
+    } catch (_e) {
+      console.warn('Database query failed for finance data, using local list:', _e);
     }
 
     const finalData = dbData && dbData.length > 0
@@ -106,12 +106,12 @@ export async function GET() {
 
     try {
       await redis.set('finpublish:finance_data', finalData, { ex: 60 });
-    } catch (redisErr) {
-      console.warn('Failed to save to Redis Cache:', redisErr);
+    } catch (_redisErr) {
+      console.warn('Failed to save to Redis Cache:', _redisErr);
     }
 
     return NextResponse.json(finalData);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
