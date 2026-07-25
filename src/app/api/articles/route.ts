@@ -51,6 +51,22 @@ export async function POST(request: Request) {
     }
 
     try {
+      // Create a mock user in Supabase/Prisma DB if it does not exist to satisfy Author relation!
+      try {
+        await prisma.user.upsert({
+          where: { id: authorId },
+          update: {},
+          create: {
+            id: authorId,
+            email: 'author@finpublish.com',
+            name: 'CMS Author',
+            role: 'AUTHOR'
+          }
+        });
+      } catch (upsertErr) {
+        console.warn('Failed to upsert mock author:', upsertErr);
+      }
+
       const newArticle = await prisma.article.create({
         data: {
           title,
@@ -79,6 +95,50 @@ export async function POST(request: Request) {
       };
       mockArticles = [newMock, ...mockArticles];
       return NextResponse.json(newMock, { status: 201 });
+    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, title, slug, content, published, category } = body;
+
+    if (!id || !title || !slug || !content) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    try {
+      const updatedArticle = await prisma.article.update({
+        where: { id },
+        data: {
+          title,
+          slug,
+          content,
+          category: category || 'Financial Analysis',
+          published: published || false,
+        },
+        include: { author: true },
+      });
+      return NextResponse.json(updatedArticle);
+    } catch (dbError) {
+      console.warn('Database update failed, using mock update:', dbError);
+      const index = mockArticles.findIndex(a => a.id === id);
+      if (index !== -1) {
+        mockArticles[index] = {
+          ...mockArticles[index],
+          title,
+          slug,
+          content,
+          category: category || 'Financial Analysis',
+          published: published || false,
+          updatedAt: new Date().toISOString()
+        };
+        return NextResponse.json(mockArticles[index]);
+      }
+      return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

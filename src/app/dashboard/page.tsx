@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { FinancialData } from '@/types/finance';
 import { Article } from '@/types/article';
-import { Edit, Eye, Plus, Check, Loader2, RefreshCw } from 'lucide-react';
+import { Edit, Eye, Plus, Check, Loader2, RefreshCw, X } from 'lucide-react';
 
 export default function AuthorDashboard() {
   const [tickers, setTickers] = useState<FinancialData[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedTickerSymbol, setSelectedTickerSymbol] = useState<string>('');
 
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
@@ -34,7 +35,7 @@ export default function AuthorDashboard() {
       setTickers(financeData);
       setArticles(articlesData);
 
-      if (financeData && financeData.length > 0) {
+      if (financeData && financeData.length > 0 && !selectedTickerSymbol) {
         setSelectedTickerSymbol(financeData[0].symbol);
       }
     } catch (err) {
@@ -48,12 +49,23 @@ export default function AuthorDashboard() {
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    setSlug(
-      val
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '')
-    );
+    if (!editingId) {
+      setSlug(
+        val
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '')
+      );
+    }
+  };
+
+  const clearForm = () => {
+    setEditingId(null);
+    setTitle('');
+    setSlug('');
+    setContent('');
+    setCategory('Financial Analysis');
+    setPublished(false);
   };
 
   const handlePublish = async (e: React.FormEvent) => {
@@ -66,11 +78,16 @@ export default function AuthorDashboard() {
     setSubmitting(true);
     setSubmitMessage(null);
 
+    const isEdit = !!editingId;
+    const url = '/api/articles';
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
-      const res = await fetch('/api/articles', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: editingId,
           title,
           slug,
           content,
@@ -81,12 +98,8 @@ export default function AuthorDashboard() {
       });
 
       if (res.ok) {
-        setSubmitMessage('Article published and saved successfully!');
-        setTitle('');
-        setSlug('');
-        setContent('');
-        setCategory('Financial Analysis');
-        setPublished(false);
+        setSubmitMessage(isEdit ? 'Article updated successfully!' : 'Article published and saved successfully!');
+        clearForm();
         loadData();
       } else {
         const err = await res.json();
@@ -119,7 +132,7 @@ export default function AuthorDashboard() {
           <CardHeader>
             <CardTitle className="text-lg font-bold flex items-center space-x-2">
               <Plus className="w-5 h-5 text-blue-600" />
-              <span>Compose New Analysis</span>
+              <span>{editingId ? 'Edit Analysis Post' : 'Compose New Analysis'}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -179,14 +192,21 @@ export default function AuthorDashboard() {
                   </label>
                 </div>
 
-                <Button type="submit" disabled={submitting} className="px-6">
-                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Publish Analysis'}
-                </Button>
+                <div className="flex items-center space-x-2">
+                  {editingId && (
+                    <Button type="button" variant="secondary" onClick={clearForm} className="inline-flex items-center">
+                      <X className="w-4 h-4 mr-1" /> Cancel
+                    </Button>
+                  )}
+                  <Button type="submit" disabled={submitting} className="px-6">
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : editingId ? 'Save Changes' : 'Publish Analysis'}
+                  </Button>
+                </div>
               </div>
 
               {submitMessage && (
                 <div className={`p-4 rounded-md text-sm font-medium ${
-                  submitMessage.includes('success')
+                  submitMessage.includes('success') || submitMessage.includes('updated')
                     ? 'bg-green-50 text-green-800 border border-green-100'
                     : 'bg-red-50 text-red-800 border border-red-100'
                 }`}>
@@ -215,6 +235,7 @@ export default function AuthorDashboard() {
                     {art.published ? 'Published' : 'Draft'}
                   </span>
                   <Button variant="ghost" size="sm" onClick={() => {
+                    setEditingId(art.id);
                     setTitle(art.title);
                     setSlug(art.slug);
                     setContent(art.content);
