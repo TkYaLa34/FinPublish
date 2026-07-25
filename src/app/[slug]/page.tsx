@@ -42,8 +42,8 @@ async function getArticle(slug: string) {
       include: { author: true },
     });
     if (article) return article;
-  } catch (error) {
-    console.error('Failed to fetch article from database, checking mock data:', error);
+  } catch (_error) {
+    console.error('Failed to fetch article from database, checking mock data:', _error);
   }
   return mockArticles.find(a => a.slug === slug) || null;
 }

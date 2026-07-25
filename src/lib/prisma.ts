@@ -18,8 +18,8 @@ export async function testDbConnection() {
     const userCount = await prisma.user.count();
     console.log(`[Database Connection] SUCCESS: Connected to Supabase PostgreSQL! User count: ${userCount}`);
     return { success: true, userCount };
-  } catch (error) {
-    console.error('[Database Connection] ERROR: Failed to query Supabase PostgreSQL database:', error);
-    return { success: false, error };
+  } catch (_error) {
+    console.error('[Database Connection] ERROR: Failed to query Supabase PostgreSQL database:', _error);
+    return { success: false, error: _error };
   }
 }

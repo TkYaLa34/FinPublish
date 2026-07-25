@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Bold, Italic, Heading, Eye, Edit3, Code } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -26,7 +26,6 @@ export const Editor = ({ value, onChange, placeholder = 'Write your financial an
     const newValue = text.substring(0, start) + replacement + text.substring(end);
     onChange(newValue);
 
-    // Reset cursor after state updates
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, start + before.length + (selected || 'text').length);

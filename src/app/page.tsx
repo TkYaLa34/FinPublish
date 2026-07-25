@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
@@ -35,8 +35,8 @@ export default function HomeFeed() {
         if (financeData && financeData.length > 0) {
           setSelectedTicker(financeData[0]);
         }
-      } catch (error) {
-        console.error('Error fetching dashboard feed data:', error);
+      } catch (_error) {
+        console.error('Error fetching dashboard feed data:', _error);
       } finally {
         setLoading(false);
       }
