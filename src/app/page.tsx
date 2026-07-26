@@ -1,0 +1,246 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ValuationCard } from '@/components/finance/valuation-card';
+import { FinancialChart } from '@/components/finance/charts';
+import { Article } from '@/types/article';
+import { FinancialData } from '@/types/finance';
+import { TrendingUp, FileText, ArrowRight, Loader2, Search, HelpCircle } from 'lucide-react';
+
+interface FinanceTickerWithHist extends FinancialData {
+  historical: { date: string; price: number }[];
+}
+
+export default function HomeFeed() {
+  const [tickers, setTickers] = useState<FinanceTickerWithHist[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedTicker, setSelectedTicker] = useState<FinanceTickerWithHist | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<FinanceTickerWithHist | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setWithSearchError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const [financeRes, articlesRes] = await Promise.all([
+        fetch('/api/finance'),
+        fetch('/api/articles')
+      ]);
+
+      const financeData = await financeRes.json();
+      const articlesData = await articlesRes.json();
+
+      setTickers(financeData);
+      setArticles(articlesData);
+
+      if (financeData && financeData.length > 0) {
+        setSelectedTicker(financeData[0]);
+      }
+    } catch (_error) {
+      console.error('Error fetching dashboard feed data:', _error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const symbol = searchQuery.trim().toUpperCase();
+    if (!symbol) return;
+
+    setSearchLoading(true);
+    setWithSearchError(null);
+    setSearchResult(null);
+
+    try {
+      const res = await fetch(`/api/finance?q=${symbol}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.symbol) {
+          setSearchResult(data);
+          // Set searchQuery back to empty
+          setSearchQuery('');
+        } else {
+          setWithSearchError('ไม่พบข้อมูลหุ้นหรือ ETF ดังกล่าว');
+        }
+      } else {
+        setWithSearchError('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      }
+    } catch (_err) {
+      setWithSearchError('ไม่สามารถเชื่อมต่อระบบค้นหาได้');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <p className="text-slate-500 font-medium">Loading premium market data & analysis...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-12">
+      {/* Hero Welcome */}
+      <div className="text-center max-w-3xl mx-auto space-y-4">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+          Real-time Market Insights & Professional Analysis
+        </h1>
+        <p className="text-lg text-slate-600">
+          Get institutional-grade stock valuation dashboards paired with qualitative deep-dives from top analysts.
+        </p>
+      </div>
+
+      {/* NEW: US Stock / ETF Search Section */}
+      <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center space-x-2">
+          <Search className="w-5 h-5 text-blue-600" />
+          <h2 className="text-lg font-bold text-slate-900">US Stock & ETF Search Finder</h2>
+        </div>
+        <p className="text-xs text-slate-500">
+          ค้นหาข้อมูลและกราฟราคาหุ้นย้อนหลังของสหรัฐฯ หรือกองทุน ETF ได้ทันที (เช่น SPY, QQQ, AAPL, MSFT, TSLA, NVDA)
+        </p>
+
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1 max-w-md">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="w-5 h-5 text-slate-400" />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="กรอกชื่อย่อหุ้น/ETF (เช่น SPY, TSLA)"
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm text-slate-800 font-medium"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searchLoading}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors flex items-center justify-center space-x-1"
+          >
+            {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>ค้นหา</span>}
+          </button>
+        </form>
+
+        {searchError && (
+          <p className="text-sm font-semibold text-red-600">{searchError}</p>
+        )}
+
+        {/* Search Result view block */}
+        {searchResult && (
+          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-1">
+              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">ข้อมูลผลการค้นหา (Stock Quote Card)</p>
+              <ValuationCard {...searchResult} />
+            </div>
+            <div className="lg:col-span-2">
+              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
+              <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Interactive Stock valuation and Chart section */}
+      <section className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <TrendingUp className="w-6 h-6 text-blue-600" />
+          <h2 className="text-2xl font-bold text-slate-900">Interactive Valuation Board</h2>
+        </div>
+
+        <p className="text-sm text-slate-500 -mt-2">
+          Click any stock card below to preview its historical trend line.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {tickers.map((ticker) => (
+            <div
+              key={ticker.symbol}
+              onClick={() => setSelectedTicker(ticker)}
+              className={`cursor-pointer transition-all ${
+                selectedTicker?.symbol === ticker.symbol
+                  ? 'ring-2 ring-blue-500 ring-offset-2 transform scale-[1.02]'
+                  : 'hover:-translate-y-0.5'
+              }`}
+            >
+              <ValuationCard {...ticker} />
+            </div>
+          ))}
+        </div>
+
+        {selectedTicker && (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {selectedTicker.symbol} Performance Trend
+                </h3>
+                <p className="text-xs text-slate-500">{selectedTicker.name}</p>
+              </div>
+              <span className="text-xs font-semibold text-slate-400">Past 5 Trading Days</span>
+            </div>
+            <FinancialChart symbol={selectedTicker.symbol} data={selectedTicker.historical} />
+          </div>
+        )}
+      </section>
+
+      {/* Analytical Articles Section */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            <h2 className="text-2xl font-bold text-slate-900">Latest Financial Analysis</h2>
+          </div>
+          <Link href="/dashboard" className="text-sm font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center">
+            Write an article <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {articles.map((article) => (
+            <article
+              key={article.id}
+              className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                  <span>Published on {new Date(article.createdAt).toLocaleDateString()}</span>
+                  <span>•</span>
+                  <span>By {article.author?.name || 'Guest Analyst'}</span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 hover:text-blue-600 transition-colors">
+                  <Link href={`/${article.slug}`}>{article.title}</Link>
+                </h3>
+                <p className="text-slate-600 text-sm line-clamp-3">
+                  {article.content.replace(/[#*`\-]/g, '').slice(0, 150)}...
+                </p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <Link
+                  href={`/${article.slug}`}
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center"
+                >
+                  Read full analysis <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
