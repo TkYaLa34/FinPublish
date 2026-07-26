@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
-import { TrendingUp, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { TrendingUp, FileText, ArrowRight, Loader2, Search } from 'lucide-react';
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
@@ -51,7 +51,7 @@ export default function HomeFeed() {
     fetchData();
   }, []);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     const symbol = searchQuery.trim().toUpperCase();
     if (!symbol) return;
@@ -102,7 +102,7 @@ export default function HomeFeed() {
         </p>
       </div>
 
-      {/* NEW: US Stock / ETF Search Section */}
+      {/* US Stock / ETF Search Section */}
       <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex items-center space-x-2">
           <Search className="w-5 h-5 text-blue-600" />

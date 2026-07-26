@@ -1,12 +1,85 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { ValuationCard } from '@/components/finance/valuation-card';
+import { FinancialChart } from '@/components/finance/charts';
 
 interface ArticlePageProps {
   params: {
     slug: string;
   };
 }
+
+const defaultFinanceData = [
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    price: 189.84,
+    change: 2.34,
+    changePercent: 1.25,
+    marketCap: 2950000000000,
+    peRatio: 28.4,
+    dividendYield: 0.51,
+    historical: [
+      { date: 'Mon', price: 185.2 },
+      { date: 'Tue', price: 186.9 },
+      { date: 'Wed', price: 184.5 },
+      { date: 'Thu', price: 187.5 },
+      { date: 'Fri', price: 189.84 },
+    ]
+  },
+  {
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
+    price: 178.47,
+    change: -5.12,
+    changePercent: -2.79,
+    marketCap: 568000000000,
+    peRatio: 45.2,
+    dividendYield: 0,
+    historical: [
+      { date: 'Mon', price: 185.0 },
+      { date: 'Tue', price: 182.1 },
+      { date: 'Wed', price: 183.5 },
+      { date: 'Thu', price: 180.2 },
+      { date: 'Fri', price: 178.47 },
+    ]
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corp.',
+    price: 415.60,
+    change: 4.88,
+    changePercent: 1.19,
+    marketCap: 3090000000000,
+    peRatio: 35.8,
+    dividendYield: 0.72,
+    historical: [
+      { date: 'Mon', price: 408.3 },
+      { date: 'Tue', price: 410.5 },
+      { date: 'Wed', price: 409.1 },
+      { date: 'Thu', price: 412.0 },
+      { date: 'Fri', price: 415.60 },
+    ]
+  },
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
+    price: 875.12,
+    change: 18.54,
+    changePercent: 2.16,
+    marketCap: 2180000000000,
+    peRatio: 72.4,
+    dividendYield: 0.02,
+    historical: [
+      { date: 'Mon', price: 840.1 },
+      { date: 'Tue', price: 852.3 },
+      { date: 'Wed', price: 848.0 },
+      { date: 'Thu', price: 865.2 },
+      { date: 'Fri', price: 875.12 },
+    ]
+  }
+];
 
 const mockArticles = [
   {
@@ -56,6 +129,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
+  // Detect matching stock ticker symbols in content or title
+  const normalizedText = (article.title + ' ' + article.content).toUpperCase();
+  const matchedStocks = defaultFinanceData.filter(stock =>
+    normalizedText.includes(stock.symbol)
+  );
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8">
       <article className="max-w-3xl mx-auto">
@@ -85,7 +164,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </header>
 
         {/* Article Content */}
-        <div className="prose prose-invert prose-indigo max-w-none text-slate-300 leading-relaxed space-y-6 whitespace-pre-wrap">
+        <div className="prose prose-invert prose-indigo max-w-none text-slate-300 leading-relaxed space-y-6 whitespace-pre-wrap mb-12">
           {article.content.split('\n').map((para, i) => {
             if (para.startsWith('# ')) {
               return <h1 key={i} className="text-3xl font-extrabold text-white mt-6 mb-3">{para.replace('# ', '')}</h1>;
@@ -99,6 +178,34 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             return <p key={i} className="mb-4 leading-relaxed">{para}</p>;
           })}
         </div>
+
+        {/* Embedded Stock Valuation and Chart Widgets */}
+        {matchedStocks.length > 0 && (
+          <div className="border-t border-slate-800 pt-8 mt-12 space-y-8">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-indigo-400 uppercase tracking-wide">ข้อมูลวิเคราะห์หลักทรัพย์ที่เกี่ยวข้อง (Asset Deep-Dive)</h3>
+              <p className="text-xs text-slate-400">เครื่องมือวิเคราะห์จำลองและสถิติย้อนหลังของบริษัทที่ถูกอ้างอิงในบทวิเคราะห์</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {matchedStocks.map(stock => (
+                <div key={stock.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-4 shadow-xl">
+                  {/* Valuation Card inside dark page container */}
+                  <div className="text-slate-900">
+                    <ValuationCard {...stock} />
+                  </div>
+                  {/* Line Chart showing historical prices */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{stock.symbol} Historical Line Chart</h4>
+                    <div className="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                      <FinancialChart symbol={stock.symbol} data={stock.historical} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </article>
     </main>
   );
