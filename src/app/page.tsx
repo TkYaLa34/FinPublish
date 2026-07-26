@@ -6,7 +6,7 @@ import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
-import { TrendingUp, FileText, ArrowRight, Loader2, Search, HelpCircle } from 'lucide-react';
+import { TrendingUp, FileText, ArrowRight, Loader2 } from 'lucide-react';
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
