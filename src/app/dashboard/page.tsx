@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Editor } from '@/components/editor/editor';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ export default function AuthorDashboard() {
     setPublished(false);
   };
 
-  const handlePublish = async (e: React.FormEvent) => {
+  const handlePublish = async (e: FormEvent) => {
     e.preventDefault();
     if (!title || !slug || !content) {
       setSubmitMessage('Please fill out all fields before submitting.');

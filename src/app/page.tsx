@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
-import { TrendingUp, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { TrendingUp, FileText, ArrowRight, Loader2, Search } from 'lucide-react';
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
@@ -18,32 +18,68 @@ export default function HomeFeed() {
   const [selectedTicker, setSelectedTicker] = useState<FinanceTickerWithHist | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [financeRes, articlesRes] = await Promise.all([
-          fetch('/api/finance'),
-          fetch('/api/articles')
-        ]);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<FinanceTickerWithHist | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setWithSearchError] = useState<string | null>(null);
 
-        const financeData = await financeRes.json();
-        const articlesData = await articlesRes.json();
+  const fetchData = async () => {
+    try {
+      const [financeRes, articlesRes] = await Promise.all([
+        fetch('/api/finance'),
+        fetch('/api/articles')
+      ]);
 
-        setTickers(financeData);
-        setArticles(articlesData);
+      const financeData = await financeRes.json();
+      const articlesData = await articlesRes.json();
 
-        if (financeData && financeData.length > 0) {
-          setSelectedTicker(financeData[0]);
-        }
-      } catch (_error) {
-        console.error('Error fetching dashboard feed data:', _error);
-      } finally {
-        setLoading(false);
+      setTickers(financeData);
+      setArticles(articlesData);
+
+      if (financeData && financeData.length > 0) {
+        setSelectedTicker(financeData[0]);
       }
+    } catch (_error) {
+      console.error('Error fetching dashboard feed data:', _error);
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const handleSearch = async (e: FormEvent) => {
+    e.preventDefault();
+    const symbol = searchQuery.trim().toUpperCase();
+    if (!symbol) return;
+
+    setSearchLoading(true);
+    setWithSearchError(null);
+    setSearchResult(null);
+
+    try {
+      const res = await fetch(`/api/finance?q=${symbol}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.symbol) {
+          setSearchResult(data);
+          // Set searchQuery back to empty
+          setSearchQuery('');
+        } else {
+          setWithSearchError('ไม่พบข้อมูลหุ้นหรือ ETF ดังกล่าว');
+        }
+      } else {
+        setWithSearchError('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      }
+    } catch (_err) {
+      setWithSearchError('ไม่สามารถเชื่อมต่อระบบค้นหาได้');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -56,6 +92,7 @@ export default function HomeFeed() {
 
   return (
     <div className="space-y-12">
+      {/* Hero Welcome */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
           Real-time Market Insights & Professional Analysis
@@ -65,6 +102,60 @@ export default function HomeFeed() {
         </p>
       </div>
 
+      {/* US Stock / ETF Search Section */}
+      <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center space-x-2">
+          <Search className="w-5 h-5 text-blue-600" />
+          <h2 className="text-lg font-bold text-slate-900">US Stock & ETF Search Finder</h2>
+        </div>
+        <p className="text-xs text-slate-500">
+          ค้นหาข้อมูลและกราฟราคาหุ้นย้อนหลังของสหรัฐฯ หรือกองทุน ETF ได้ทันที (เช่น SPY, QQQ, AAPL, MSFT, TSLA, NVDA)
+        </p>
+
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1 max-w-md">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="w-5 h-5 text-slate-400" />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="กรอกชื่อย่อหุ้น/ETF (เช่น SPY, TSLA)"
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm text-slate-800 font-medium"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={searchLoading}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors flex items-center justify-center space-x-1"
+          >
+            {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>ค้นหา</span>}
+          </button>
+        </form>
+
+        {searchError && (
+          <p className="text-sm font-semibold text-red-600">{searchError}</p>
+        )}
+
+        {/* Search Result view block */}
+        {searchResult && (
+          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-1">
+              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">ข้อมูลผลการค้นหา (Stock Quote Card)</p>
+              <ValuationCard {...searchResult} />
+            </div>
+            <div className="lg:col-span-2">
+              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
+              <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Interactive Stock valuation and Chart section */}
       <section className="space-y-6">
         <div className="flex items-center space-x-2">
           <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -107,6 +198,7 @@ export default function HomeFeed() {
         )}
       </section>
 
+      {/* Analytical Articles Section */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
