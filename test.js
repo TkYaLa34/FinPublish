@@ -43,7 +43,6 @@ async function runTests() {
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
 
-    // Check main tables
     const userCount = await prisma.user.count();
     const articleCount = await prisma.article.count();
     const financeCount = await prisma.financialData.count();
