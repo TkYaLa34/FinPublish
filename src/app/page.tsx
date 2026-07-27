@@ -4,9 +4,12 @@ import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
+import { WatchlistWidget } from '@/components/finance/watchlist';
+import { PortfolioSummary } from '@/components/finance/portfolio';
+import { TradeModal } from '@/components/finance/trade-modal';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
-import { TrendingUp, FileText, ArrowRight, Loader2, Search } from 'lucide-react';
+import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, StarOff, Briefcase } from 'lucide-react';
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
@@ -18,11 +21,18 @@ export default function HomeFeed() {
   const [selectedTicker, setSelectedTicker] = useState<FinanceTickerWithHist | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Sync state for portfolio/watchlist
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<FinanceTickerWithHist | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setWithSearchError] = useState<string | null>(null);
+
+  // Watchlist status for search result
+  const [isSearchingWatched, setIsSearchingWatched] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -37,7 +47,7 @@ export default function HomeFeed() {
       setTickers(financeData);
       setArticles(articlesData);
 
-      if (financeData && financeData.length > 0) {
+      if (financeData && financeData.length > 0 && !selectedTicker) {
         setSelectedTicker(financeData[0]);
       }
     } catch (_error) {
@@ -47,9 +57,28 @@ export default function HomeFeed() {
     }
   };
 
+  const checkWatchlistStatus = async (symbol: string) => {
+    try {
+      const res = await fetch(`/api/watchlist?userId=mock-user`);
+      if (res.ok) {
+        const data = await res.json();
+        const found = data.some((item: any) => item.symbol === symbol);
+        setIsSearchingWatched(found);
+      }
+    } catch (_err) {
+      console.error('Failed to verify watchlist status:', _err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [refreshCounter]);
+
+  useEffect(() => {
+    if (searchResult) {
+      checkWatchlistStatus(searchResult.symbol);
+    }
+  }, [searchResult, refreshCounter]);
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
@@ -66,7 +95,6 @@ export default function HomeFeed() {
         const data = await res.json();
         if (data && data.symbol) {
           setSearchResult(data);
-          // Set searchQuery back to empty
           setSearchQuery('');
         } else {
           setWithSearchError('ไม่พบข้อมูลหุ้นหรือ ETF ดังกล่าว');
@@ -78,6 +106,33 @@ export default function HomeFeed() {
       setWithSearchError('ไม่สามารถเชื่อมต่อระบบค้นหาได้');
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handleToggleWatch = async (symbol: string) => {
+    try {
+      const res = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 'mock-user', symbol })
+      });
+      if (res.ok) {
+        setRefreshCounter(prev => prev + 1);
+      }
+    } catch (_err) {
+      console.error('Failed to toggle watchlist:', _err);
+    }
+  };
+
+  const handleSelectSymbol = async (symbol: string) => {
+    try {
+      const res = await fetch(`/api/finance?q=${symbol}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedTicker(data);
+      }
+    } catch (_err) {
+      console.error('Failed to load selected ticker details:', _err);
     }
   };
 
@@ -102,101 +157,156 @@ export default function HomeFeed() {
         </p>
       </div>
 
-      {/* US Stock / ETF Search Section */}
-      <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center space-x-2">
-          <Search className="w-5 h-5 text-blue-600" />
-          <h2 className="text-lg font-bold text-slate-900">US Stock & ETF Search Finder</h2>
-        </div>
-        <p className="text-xs text-slate-500">
-          ค้นหาข้อมูลและกราฟราคาหุ้นย้อนหลังของสหรัฐฯ หรือกองทุน ETF ได้ทันที (เช่น SPY, QQQ, AAPL, MSFT, TSLA, NVDA)
-        </p>
+      {/* Main workspace layout: Portfolio Summary & Watchlist next to search / board */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <div className="relative flex-1 max-w-md">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="w-5 h-5 text-slate-400" />
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="กรอกชื่อย่อหุ้น/ETF (เช่น SPY, TSLA)"
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm text-slate-800 font-medium"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={searchLoading}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors flex items-center justify-center space-x-1"
-          >
-            {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>ค้นหา</span>}
-          </button>
-        </form>
+        {/* Left Side: Stocks & Analysis (2 Cols) */}
+        <div className="lg:col-span-2 space-y-8">
 
-        {searchError && (
-          <p className="text-sm font-semibold text-red-600">{searchError}</p>
-        )}
-
-        {/* Search Result view block */}
-        {searchResult && (
-          <div className="pt-4 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-1">
-              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">ข้อมูลผลการค้นหา (Stock Quote Card)</p>
-              <ValuationCard {...searchResult} />
+          {/* US Stock / ETF Search Section */}
+          <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center space-x-2">
+              <Search className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-bold text-slate-900">US Stock & ETF Search Finder</h2>
             </div>
-            <div className="lg:col-span-2">
-              <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
-              <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-                <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+            <p className="text-xs text-slate-500">
+              ค้นหาข้อมูลและกราฟราคาหุ้นย้อนหลังของสหรัฐฯ หรือกองทุน ETF ได้ทันที (เช่น SPY, QQQ, AAPL, MSFT, TSLA, NVDA)
+            </p>
+
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1 max-w-md">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="กรอกชื่อย่อหุ้น/ETF (เช่น SPY, TSLA)"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm text-slate-800 font-medium"
+                />
               </div>
-            </div>
-          </div>
-        )}
-      </section>
+              <button
+                type="submit"
+                disabled={searchLoading}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors flex items-center justify-center space-x-1"
+              >
+                {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>ค้นหา</span>}
+              </button>
+            </form>
 
-      {/* Interactive Stock valuation and Chart section */}
-      <section className="space-y-6">
-        <div className="flex items-center space-x-2">
-          <TrendingUp className="w-6 h-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-slate-900">Interactive Valuation Board</h2>
-        </div>
+            {searchError && (
+              <p className="text-sm font-semibold text-red-600">{searchError}</p>
+            )}
 
-        <p className="text-sm text-slate-500 -mt-2">
-          Click any stock card below to preview its historical trend line.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {tickers.map((ticker) => (
-            <div
-              key={ticker.symbol}
-              onClick={() => setSelectedTicker(ticker)}
-              className={`cursor-pointer transition-all ${
-                selectedTicker?.symbol === ticker.symbol
-                  ? 'ring-2 ring-blue-500 ring-offset-2 transform scale-[1.02]'
-                  : 'hover:-translate-y-0.5'
-              }`}
-            >
-              <ValuationCard {...ticker} />
-            </div>
-          ))}
-        </div>
-
-        {selectedTicker && (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {selectedTicker.symbol} Performance Trend
-                </h3>
-                <p className="text-xs text-slate-500">{selectedTicker.name}</p>
+            {/* Search Result view block with Watch Toggle */}
+            {searchResult && (
+              <div className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                <div className="md:col-span-1 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-400 uppercase">Stock Quote Card</p>
+                    <button
+                      onClick={() => handleToggleWatch(searchResult.symbol)}
+                      className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-bold transition-all border ${
+                        isSearchingWatched
+                          ? 'bg-amber-50 border-amber-300 text-amber-700'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {isSearchingWatched ? (
+                        <>
+                          <Star className="w-3.5 h-3.5 mr-1 text-amber-500 fill-amber-500" />
+                          <span>Watched</span>
+                        </>
+                      ) : (
+                        <>
+                          <Star className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                          <span>Watch</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <ValuationCard {...searchResult} />
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
+                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                    <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+                  </div>
+                </div>
               </div>
-              <span className="text-xs font-semibold text-slate-400">Past 5 Trading Days</span>
+            )}
+          </section>
+
+          {/* Interactive Stock valuation and Chart section */}
+          <section className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-6 h-6 text-blue-600" />
+              <h2 className="text-2xl font-bold text-slate-900">Interactive Valuation Board</h2>
             </div>
-            <FinancialChart symbol={selectedTicker.symbol} data={selectedTicker.historical} />
+
+            <p className="text-sm text-slate-500 -mt-2">
+              Click any stock card below to preview its historical trend line.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {tickers.map((ticker) => (
+                <div
+                  key={ticker.symbol}
+                  onClick={() => setSelectedTicker(ticker)}
+                  className={`cursor-pointer transition-all ${
+                    selectedTicker?.symbol === ticker.symbol
+                      ? 'ring-2 ring-blue-500 ring-offset-2 transform scale-[1.02]'
+                      : 'hover:-translate-y-0.5'
+                  }`}
+                >
+                  <ValuationCard {...ticker} />
+                </div>
+              ))}
+            </div>
+
+            {selectedTicker && (
+              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {selectedTicker.symbol} Performance Trend
+                    </h3>
+                    <p className="text-xs text-slate-500">{selectedTicker.name}</p>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400">Past 5 Trading Days</span>
+                </div>
+                <FinancialChart symbol={selectedTicker.symbol} data={selectedTicker.historical} />
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Right Side: Portfolio Summary & Watchlist Widget (1 Col) */}
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 flex items-center">
+              <Briefcase className="w-5 h-5 text-blue-600 mr-2" />
+              <span>Workspace Portfolios</span>
+            </h2>
+            <p className="text-xs text-slate-500">Track and trade simulated US equities or manage favorite watchlists</p>
           </div>
-        )}
-      </section>
+
+          {/* Portfolio Summary widget */}
+          <PortfolioSummary
+            userId="mock-user"
+            onRefreshTrigger={refreshCounter}
+            onOpenTradeModal={() => setIsTradeOpen(true)}
+          />
+
+          {/* Watchlist widget */}
+          <WatchlistWidget
+            userId="mock-user"
+            onSelectSymbol={handleSelectSymbol}
+            onRefreshTrigger={refreshCounter}
+          />
+        </div>
+      </div>
 
       {/* Analytical Articles Section */}
       <section className="space-y-6">
@@ -241,6 +351,14 @@ export default function HomeFeed() {
           ))}
         </div>
       </section>
+
+      {/* Trade Modal Component */}
+      <TradeModal
+        isOpen={isTradeOpen}
+        onClose={() => setIsTradeOpen(false)}
+        userId="mock-user"
+        onSuccess={() => setRefreshCounter(prev => prev + 1)}
+      />
     </div>
   );
 }
