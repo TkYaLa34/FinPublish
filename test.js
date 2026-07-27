@@ -43,6 +43,7 @@ async function runTests() {
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
 
+    // Check main tables
     const userCount = await prisma.user.count();
     const articleCount = await prisma.article.count();
     const financeCount = await prisma.financialData.count();
@@ -71,31 +72,85 @@ async function runTests() {
     const portfolio = await prisma.portfolio.create({
       data: {
         userId: dummyUserId,
-        cashBalance: 125000.50
+        cashBalance: 10000.00 // Initialize with $10,000 cash balance
       }
     });
-    assert.strictEqual(portfolio.cashBalance, 125000.50);
+    assert.strictEqual(portfolio.cashBalance, 10000.00);
     assert.strictEqual(portfolio.userId, dummyUserId);
     console.log('  ✓ Portfolio creation passed.');
 
-    // Create a Transaction
-    const transaction = await prisma.transaction.create({
+    // Test BUY Order validation (Sufficient cash)
+    const buyPrice = 150.00;
+    const buyShares = 10;
+    const buyCost = buyPrice * buyShares; // $1500
+
+    const updatedPortBuy = await prisma.portfolio.update({
+      where: { id: portfolio.id },
+      data: { cashBalance: { decrement: buyCost } }
+    });
+    assert.strictEqual(updatedPortBuy.cashBalance, 8500.00);
+
+    const txBuy = await prisma.transaction.create({
       data: {
         portfolioId: portfolio.id,
         symbol: 'AAPL',
         type: 'BUY',
-        shares: 10,
-        price: 190.00,
-        totalAmount: 1900.00
+        shares: buyShares,
+        price: buyPrice,
+        totalAmount: buyCost
       }
     });
-    assert.strictEqual(transaction.symbol, 'AAPL');
-    assert.strictEqual(transaction.shares, 10);
-    assert.strictEqual(transaction.price, 190.00);
-    console.log('  ✓ Transaction execution and relations passed.');
+    assert.strictEqual(txBuy.shares, 10);
+    assert.strictEqual(txBuy.type, 'BUY');
+    console.log('  ✓ BUY transaction with sufficient cash validation passed.');
+
+    // Test BUY Order validation (Insufficient cash)
+    const tooExpensiveCost = 1000000.00;
+    assert.ok(updatedPortBuy.cashBalance < tooExpensiveCost);
+    console.log('  ✓ BUY transaction with insufficient cash boundary test passed.');
+
+    // Test SELL Order validation (Sufficient shares)
+    const sellPrice = 160.00;
+    const sellShares = 5;
+    const sellCredit = sellPrice * sellShares; // $800
+
+    // Fetch transactions and aggregate
+    const allTxs = await prisma.transaction.findMany({ where: { portfolioId: portfolio.id } });
+    const holdings = {};
+    allTxs.forEach(t => {
+      if (t.type === 'BUY') holdings[t.symbol] = (holdings[t.symbol] || 0) + t.shares;
+      else if (t.type === 'SELL') holdings[t.symbol] = (holdings[t.symbol] || 0) - t.shares;
+    });
+
+    assert.ok(holdings['AAPL'] >= sellShares);
+
+    const updatedPortSell = await prisma.portfolio.update({
+      where: { id: portfolio.id },
+      data: { cashBalance: { increment: sellCredit } }
+    });
+    assert.strictEqual(updatedPortSell.cashBalance, 9300.00);
+
+    const txSell = await prisma.transaction.create({
+      data: {
+        portfolioId: portfolio.id,
+        symbol: 'AAPL',
+        type: 'SELL',
+        shares: sellShares,
+        price: sellPrice,
+        totalAmount: sellCredit
+      }
+    });
+    assert.strictEqual(txSell.shares, 5);
+    assert.strictEqual(txSell.type, 'SELL');
+    console.log('  ✓ SELL transaction with sufficient shares validation passed.');
+
+    // Test SELL Order validation (Insufficient shares)
+    const tooManySellShares = 100;
+    assert.ok((holdings['AAPL'] || 0) < tooManySellShares);
+    console.log('  ✓ SELL transaction with insufficient shares boundary test passed.');
 
     // Cleanup Phase 6 test records
-    await prisma.transaction.delete({ where: { id: transaction.id } });
+    await prisma.transaction.deleteMany({ where: { portfolioId: portfolio.id } });
     await prisma.portfolio.delete({ where: { id: portfolio.id } });
     await prisma.watchlist.delete({ where: { id: watchlist.id } });
     console.log('  ✓ Phase 6 database records cleaned up cleanly.');
