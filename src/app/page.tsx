@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
 import { WatchlistWidget } from '@/components/finance/watchlist';
@@ -9,7 +10,7 @@ import { PortfolioSummary } from '@/components/finance/portfolio';
 import { TradeModal } from '@/components/finance/trade-modal';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
-import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, StarOff, Briefcase } from 'lucide-react';
+import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, Briefcase, UserCheck } from 'lucide-react';
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
@@ -20,6 +21,10 @@ export default function HomeFeed() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedTicker, setSelectedTicker] = useState<FinanceTickerWithHist | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Authenticated user ID (Multi-Tenancy)
+  const [activeUserId, setActiveUserId] = useState<string>('mock-user');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Sync state for portfolio/watchlist
   const [refreshCounter, setRefreshCounter] = useState(0);
@@ -33,6 +38,18 @@ export default function HomeFeed() {
 
   // Watchlist status for search result
   const [isSearchingWatched, setIsSearchingWatched] = useState(false);
+
+  const fetchUserSession = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setActiveUserId(user.id);
+        setUserEmail(user.email || null);
+      }
+    } catch (_err) {
+      console.warn('Failed to retrieve user session, using mock sandbox:', _err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -59,7 +76,7 @@ export default function HomeFeed() {
 
   const checkWatchlistStatus = async (symbol: string) => {
     try {
-      const res = await fetch(`/api/watchlist?userId=mock-user`);
+      const res = await fetch(`/api/watchlist?userId=${activeUserId}`);
       if (res.ok) {
         const data = await res.json();
         const found = data.some((item: any) => item.symbol === symbol);
@@ -71,6 +88,10 @@ export default function HomeFeed() {
   };
 
   useEffect(() => {
+    fetchUserSession();
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [refreshCounter]);
 
@@ -78,7 +99,7 @@ export default function HomeFeed() {
     if (searchResult) {
       checkWatchlistStatus(searchResult.symbol);
     }
-  }, [searchResult, refreshCounter]);
+  }, [searchResult, activeUserId, refreshCounter]);
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
@@ -114,7 +135,7 @@ export default function HomeFeed() {
       const res = await fetch('/api/watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'mock-user', symbol })
+        body: JSON.stringify({ userId: activeUserId, symbol })
       });
       if (res.ok) {
         setRefreshCounter(prev => prev + 1);
@@ -147,6 +168,14 @@ export default function HomeFeed() {
 
   return (
     <div className="space-y-12">
+      {/* Active User Badge for Multi-Tenancy feedback */}
+      {userEmail && (
+        <div className="flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5 max-w-max text-xs text-blue-800 font-semibold shadow-sm">
+          <UserCheck className="w-4 h-4 text-blue-600" />
+          <span>Logged in as: <strong className="text-blue-900">{userEmail}</strong> (Isolated Multi-Tenant Session)</span>
+        </div>
+      )}
+
       {/* Hero Welcome */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
@@ -292,16 +321,16 @@ export default function HomeFeed() {
             <p className="text-xs text-slate-500">Track and trade simulated US equities or manage favorite watchlists</p>
           </div>
 
-          {/* Portfolio Summary widget */}
+          {/* Portfolio Summary widget with real multi-tenant activeUserId */}
           <PortfolioSummary
-            userId="mock-user"
+            userId={activeUserId}
             onRefreshTrigger={refreshCounter}
             onOpenTradeModal={() => setIsTradeOpen(true)}
           />
 
-          {/* Watchlist widget */}
+          {/* Watchlist widget with real multi-tenant activeUserId */}
           <WatchlistWidget
-            userId="mock-user"
+            userId={activeUserId}
             onSelectSymbol={handleSelectSymbol}
             onRefreshTrigger={refreshCounter}
           />
@@ -352,11 +381,11 @@ export default function HomeFeed() {
         </div>
       </section>
 
-      {/* Trade Modal Component */}
+      {/* Trade Modal Component with real multi-tenant activeUserId */}
       <TradeModal
         isOpen={isTradeOpen}
         onClose={() => setIsTradeOpen(false)}
-        userId="mock-user"
+        userId={activeUserId}
         onSuccess={() => setRefreshCounter(prev => prev + 1)}
       />
     </div>

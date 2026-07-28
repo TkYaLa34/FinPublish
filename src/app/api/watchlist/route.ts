@@ -6,7 +6,11 @@ let mockWatchlist: { id: string; userId: string; symbol: string }[] = [];
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'mock-user';
+    const userId = searchParams.get('userId')?.trim();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized: Missing userId' }, { status: 401 });
+    }
 
     try {
       const dbWatchlist = await prisma.watchlist.findMany({
@@ -15,7 +19,7 @@ export async function GET(request: Request) {
       });
       return NextResponse.json(dbWatchlist);
     } catch (_dbError) {
-      console.warn('Database query failed for watchlist, using mock store:', _dbError);
+      console.warn('Database query failed for watchlist, using isolated mock store:', _dbError);
       const filtered = mockWatchlist.filter(w => w.userId === userId);
       return NextResponse.json(filtered);
     }
@@ -43,7 +47,6 @@ export async function POST(request: Request) {
       });
 
       if (existing) {
-        // Toggle behavior: if already watched, remove it!
         await prisma.watchlist.delete({
           where: { id: existing.id }
         });
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
       });
       return NextResponse.json({ success: true, action: 'added', data: newWatch });
     } catch (_dbError) {
-      console.warn('Database write failed for watchlist, using mock store:', _dbError);
+      console.warn('Database write failed for watchlist, using isolated mock store:', _dbError);
 
       const existingIndex = mockWatchlist.findIndex(
         w => w.userId === userId && w.symbol === cleanSymbol

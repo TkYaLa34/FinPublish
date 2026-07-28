@@ -8,10 +8,14 @@ let mockTransactions: { id: string; portfolioId: string; symbol: string; type: s
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || 'mock-user';
+    const userId = searchParams.get('userId')?.trim();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized: Missing userId' }, { status: 401 });
+    }
 
     try {
-      // Find or create live portfolio
+      // Find or create live portfolio for the authenticated user
       let portfolio = await prisma.portfolio.findUnique({
         where: { userId },
         include: { transactions: { orderBy: { createdAt: 'desc' } } }
@@ -37,7 +41,6 @@ export async function GET(request: Request) {
         }
       });
 
-      // Filter out empty holdings
       const activeHoldings = Object.keys(holdings)
         .filter(symbol => holdings[symbol] > 0)
         .map(symbol => ({
@@ -53,7 +56,7 @@ export async function GET(request: Request) {
         transactions: portfolio.transactions
       });
     } catch (_dbError) {
-      console.warn('Database query failed for portfolio, using mock store:', _dbError);
+      console.warn('Database query failed for portfolio, using isolated mock store:', _dbError);
 
       if (!mockPortfolios[userId]) {
         mockPortfolios[userId] = {
