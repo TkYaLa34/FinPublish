@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
+import { calculateSupportResistance } from '@/lib/technical-indicators';
 
 const defaultFinanceData = [
   {
@@ -115,7 +116,6 @@ export async function GET(request: Request) {
     if (q) {
       console.log(`Searching stock/ETF ticker: ${q}`);
 
-      // 1. Try fetching from Upstash Redis cache first for this specific symbol query
       const cacheKey = `finpublish:ticker_${q}`;
       const cachedItem = await redis.get(cacheKey);
       if (cachedItem) {
@@ -123,7 +123,6 @@ export async function GET(request: Request) {
         return NextResponse.json(cachedItem);
       }
 
-      // 2. Try fetching from database if exists
       let dbItem = null;
       try {
         dbItem = await prisma.financialData.findUnique({
@@ -135,7 +134,15 @@ export async function GET(request: Request) {
 
       let matched = dbItem
         ? {
-            ...dbItem,
+            id: dbItem.id,
+            symbol: dbItem.symbol,
+            name: dbItem.name,
+            price: dbItem.price,
+            change: dbItem.change,
+            changePercent: dbItem.changePercent,
+            marketCap: dbItem.marketCap,
+            peRatio: dbItem.peRatio,
+            dividendYield: dbItem.dividendYield,
             historical: [
               { date: 'Mon', price: dbItem.price * 0.98 },
               { date: 'Tue', price: dbItem.price * 1.01 },
@@ -146,9 +153,8 @@ export async function GET(request: Request) {
           }
         : defaultFinanceData.find(item => item.symbol === q);
 
-      // 3. If no pre-defined stock matches, generate a clean mock Stock/ETF dynamically!
       if (!matched) {
-        const isEtf = q.length === 3; // SPY, QQQ, DIA etc. are 3 letters
+        const isEtf = q.length === 3;
         matched = {
           symbol: q,
           name: isEtf ? `${q} Index Fund Trust` : `${q} Corporation Inc.`,
@@ -168,17 +174,22 @@ export async function GET(request: Request) {
         };
       }
 
-      // Cache the result in Redis for 60 seconds
+      // Append Support & Resistance technical levels
+      const levels = calculateSupportResistance(matched.price, matched.historical);
+      const resultPayload = {
+        ...matched,
+        ...levels
+      };
+
       try {
-        await redis.set(cacheKey, matched, { ex: 60 });
+        await redis.set(cacheKey, resultPayload, { ex: 60 });
       } catch (_redisErr) {
         console.warn('Failed to save individual ticker to Redis Cache:', _redisErr);
       }
 
-      return NextResponse.json(matched);
+      return NextResponse.json(resultPayload);
     }
 
-    // Default route logic: Fetch entire board list
     const cachedData = await redis.get('finpublish:finance_data');
     if (cachedData) {
       console.log('Serving board finance data from Upstash Redis Cache');
@@ -192,11 +203,19 @@ export async function GET(request: Request) {
       console.warn('Database query failed for finance data, using local list:', _e);
     }
 
-    const finalData = dbData && dbData.length > 0
+    const mappedList = dbData && dbData.length > 0
       ? dbData.map(item => {
           const matched = defaultFinanceData.find(d => d.symbol === item.symbol);
           return {
-            ...item,
+            id: item.id,
+            symbol: item.symbol,
+            name: item.name,
+            price: item.price,
+            change: item.change,
+            changePercent: item.changePercent,
+            marketCap: item.marketCap,
+            peRatio: item.peRatio,
+            dividendYield: item.dividendYield,
             historical: matched?.historical || [
               { date: 'Mon', price: item.price * 0.98 },
               { date: 'Tue', price: item.price * 1.01 },
@@ -207,6 +226,15 @@ export async function GET(request: Request) {
           };
         })
       : defaultFinanceData;
+
+    // Calculate Support and Resistance for each board item
+    const finalData = mappedList.map(item => {
+      const levels = calculateSupportResistance(item.price, item.historical);
+      return {
+        ...item,
+        ...levels
+      };
+    });
 
     try {
       await redis.set('finpublish:finance_data', finalData, { ex: 60 });
