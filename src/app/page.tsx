@@ -9,6 +9,7 @@ import { DCFValuationCard } from '@/components/finance/dcf-valuation';
 import { WatchlistWidget } from '@/components/finance/watchlist';
 import { PortfolioSummary } from '@/components/finance/portfolio';
 import { TradeModal } from '@/components/finance/trade-modal';
+import { PortfolioRiskAnalytics } from '@/components/finance/risk-analytics';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
 import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, Briefcase, UserCheck } from 'lucide-react';
@@ -173,7 +174,7 @@ export default function HomeFeed() {
 
   return (
     <div className="space-y-12">
-      {/* Active User Badge for Multi-Tenancy feedback */}
+      {/* Active User Badge */}
       {userEmail && (
         <div className="flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5 max-w-max text-xs text-blue-800 font-semibold shadow-sm">
           <UserCheck className="w-4 h-4 text-blue-600" />
@@ -191,10 +192,10 @@ export default function HomeFeed() {
         </p>
       </div>
 
-      {/* Main workspace layout: Portfolio Summary & Watchlist next to search / board */}
+      {/* Main workspace layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Left Side: Stocks & Analysis (2 Cols) */}
+        {/* Left Side: Stocks, Charts, & DCF Valuation Builder (2 Cols) */}
         <div className="lg:col-span-2 space-y-8">
 
           {/* US Stock / ETF Search Section */}
@@ -341,7 +342,7 @@ export default function HomeFeed() {
           </section>
         </div>
 
-        {/* Right Side: Portfolio Summary & Watchlist Widget (1 Col) */}
+        {/* Right Side: Portfolio Summary, Risk Analytics & Watchlist Widget (1 Col) */}
         <div className="space-y-8">
           <div>
             <h2 className="text-xl font-extrabold text-slate-900 flex items-center">
@@ -350,11 +351,17 @@ export default function HomeFeed() {
             </h2>
             <p className="text-xs text-slate-500">Track and trade simulated US equities or manage favorite watchlists</p>
           </div>
-พ
+
           <PortfolioSummary
             userId={activeUserId}
             onRefreshTrigger={refreshCounter}
             onOpenTradeModal={() => setIsTradeOpen(true)}
+          />
+
+          {/* Real-time multi-tenant Portfolio Risk & Correlation Analytics */}
+          <PortfolioRiskAnalytics
+            userId={activeUserId}
+            onRefreshTrigger={refreshCounter}
           />
 
           <WatchlistWidget
