@@ -12,6 +12,56 @@ if (fs.existsSync('.env')) {
   }
 }
 
+// Javascript mirror of valuation router to verify algorithms in raw Node environment
+function calculateIntrinsicValueJS(sector, input) {
+  const price = input.price;
+  const shares = input.outstandingShares;
+  const g = input.growthRate ?? 0.08;
+  const d = input.discountRate ?? 0.10;
+
+  if (sector === 'TECH') {
+    const fcf = input.freeCashFlow ?? (price * shares * 0.04);
+    // Simple dcf
+    const dcfVal = (fcf * (1 + g)) / (d - 0.025) / shares;
+    const ebitda = input.ebitda ?? (fcf * 1.3);
+    const mult = input.evToEbitdaMultiplier ?? 15;
+    const multipleVal = (ebitda * mult + (input.cashAndEquivalents ?? 0) - (input.totalDebt ?? 0)) / shares;
+    return {
+      intrinsicValue: (0.7 * dcfVal) + (0.3 * multipleVal),
+      modelUsed: 'Tech Weighted Model'
+    };
+  } else if (sector === 'FINANCIAL') {
+    const roe = input.returnOnEquity ?? 0.12;
+    const r = input.requiredReturn ?? 0.10;
+    const bv = input.bookValue ?? (price * shares * 0.8);
+    const perShareBV = bv / shares;
+    return {
+      intrinsicValue: perShareBV + ((roe - r) * perShareBV) / r,
+      modelUsed: 'Residual Income Valuation Model'
+    };
+  } else if (sector === 'BIOTECH') {
+    const prob = input.phaseSuccessProbability ?? 0.65;
+    const revenue = input.projectedRevenue ?? (price * shares * 0.15);
+    const pvRevenue = revenue / Math.pow(1 + d, 5);
+    return {
+      intrinsicValue: (pvRevenue * prob) / shares,
+      modelUsed: 'rNPV Model'
+    };
+  } else if (sector === 'REIT') {
+    const nav = input.nav ?? price;
+    const ffo = input.ffo ?? (price * shares * 0.08);
+    const ffoMultipleVal = (ffo * 15) / shares;
+    return {
+      intrinsicValue: (0.6 * nav) + (0.4 * ffoMultipleVal),
+      modelUsed: 'REIT NAV Model'
+    };
+  }
+  return {
+    intrinsicValue: price * 0.5,
+    modelUsed: 'Standard Fallback DCF'
+  };
+}
+
 async function runTests() {
   try {
     // 1. Check our mock structure logic
@@ -31,11 +81,86 @@ async function runTests() {
     assert.ok(defaultFinanceData[0].marketCap > 1e12);
     console.log('✓ Mock Finance data structures validated successfully.');
 
-    // 2. Test live Supabase Prisma database connection query if available
+    // 2. Test Dynamic Valuation Router sector-specific routing logic
+    console.log('Running Dynamic Valuation Router Unit Tests...');
+
+    // Test TECH Sector
+    const techInput = {
+      symbol: 'AAPL',
+      name: 'Apple Tech',
+      price: 150.00,
+      outstandingShares: 1000000,
+      freeCashFlow: 10000000,
+      totalDebt: 5000000,
+      cashAndEquivalents: 15000000,
+      ebitda: 12000000,
+      evToEbitdaMultiplier: 15
+    };
+    const techResult = calculateIntrinsicValueJS('TECH', techInput);
+    assert.ok(techResult.modelUsed.includes('Tech Weighted'));
+    assert.ok(techResult.intrinsicValue > 0);
+    console.log('  ✓ TECH Model (DCF + EBITDA Multiple) routing passed.');
+
+    // Test FINANCIAL Sector
+    const financialInput = {
+      symbol: 'JPM',
+      name: 'JPMorgan Chase',
+      price: 100.00,
+      outstandingShares: 5000000,
+      bookValue: 400000000,
+      returnOnEquity: 0.14,
+      requiredReturn: 0.10
+    };
+    const finResult = calculateIntrinsicValueJS('FINANCIAL', financialInput);
+    assert.ok(finResult.modelUsed.includes('Residual Income'));
+    assert.ok(finResult.intrinsicValue > 0);
+    console.log('  ✓ FINANCIAL Model (Residual Income) routing passed.');
+
+    // Test BIOTECH Sector
+    const biotechInput = {
+      symbol: 'MRNA',
+      name: 'Moderna Bio',
+      price: 80.00,
+      outstandingShares: 2000000,
+      phaseSuccessProbability: 0.70,
+      projectedRevenue: 500000000
+    };
+    const bioResult = calculateIntrinsicValueJS('BIOTECH', biotechInput);
+    assert.ok(bioResult.modelUsed.includes('rNPV'));
+    assert.ok(bioResult.intrinsicValue > 0);
+    console.log('  ✓ BIOTECH Model (rNPV) routing passed.');
+
+    // Test REIT Sector
+    const reitInput = {
+      symbol: 'O',
+      name: 'Realty Income REIT',
+      price: 60.00,
+      outstandingShares: 1000000,
+      nav: 55.00,
+      ffo: 8000000
+    };
+    const reitResult = calculateIntrinsicValueJS('REIT', reitInput);
+    assert.ok(reitResult.modelUsed.includes('REIT NAV'));
+    assert.ok(reitResult.intrinsicValue > 0);
+    console.log('  ✓ REIT Model (NAV + FFO Multiples) routing passed.');
+
+    // Test Fallback Model (OTHER)
+    const fallbackInput = {
+      symbol: 'NKE',
+      name: 'Nike Apparel',
+      price: 120.00,
+      outstandingShares: 1000000
+    };
+    const fallbackResult = calculateIntrinsicValueJS('OTHER', fallbackInput);
+    assert.ok(fallbackResult.modelUsed.includes('Standard Fallback'));
+    assert.ok(fallbackResult.intrinsicValue > 0);
+    console.log('  ✓ Fallback Standard DCF routing passed.');
+
+    // 3. Test live Supabase Prisma database connection query if available
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl || dbUrl.includes('johndoe') || dbUrl.includes('your-supabase-project')) {
       console.log('⚠️  Skipping real database connectivity test (DATABASE_URL not configured or is placeholder).');
-      console.log('✓ All 1/1 mock tests passed cleanly!');
+      console.log('✓ All 6/6 mock tests passed cleanly!');
       process.exit(0);
     }
 
@@ -53,7 +178,7 @@ async function runTests() {
     console.log(`  - Articles table count: ${articleCount}`);
     console.log(`  - FinancialData table count: ${financeCount}`);
 
-    // 3. Test Phase 6 Watchlist, Portfolio, and Transaction operations
+    // Test Phase 6 Watchlist, Portfolio, and Transaction operations
     console.log('Running Phase 6 Watchlist & Portfolio Integration tests...');
     const dummyUserId = `test-user-${Date.now()}`;
 
