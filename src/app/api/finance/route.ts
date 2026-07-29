@@ -13,6 +13,10 @@ const defaultFinanceData = [
     marketCap: 2950000000000,
     peRatio: 28.4,
     dividendYield: 0.51,
+    freeCashFlow: 104300000000,       // $104.3B FCF
+    outstandingShares: 15400000000,   // 15.4B shares
+    totalDebt: 111000000000,          // $111B debt
+    cashAndEquivalents: 73000000000,  // $73B cash
     historical: [
       { date: 'Mon', price: 185.2 },
       { date: 'Tue', price: 186.9 },
@@ -30,6 +34,10 @@ const defaultFinanceData = [
     marketCap: 568000000000,
     peRatio: 45.2,
     dividendYield: 0,
+    freeCashFlow: 4400000000,         // $4.4B FCF
+    outstandingShares: 3180000000,    // 3.18B shares
+    totalDebt: 3000000000,            // $3B debt
+    cashAndEquivalents: 26000000000,  // $26B cash
     historical: [
       { date: 'Mon', price: 185.0 },
       { date: 'Tue', price: 182.1 },
@@ -47,6 +55,10 @@ const defaultFinanceData = [
     marketCap: 3090000000000,
     peRatio: 35.8,
     dividendYield: 0.72,
+    freeCashFlow: 63000000000,        // $63B FCF
+    outstandingShares: 7430000000,    // 7.43B shares
+    totalDebt: 106000000000,          // $106B debt
+    cashAndEquivalents: 80000000000,  // $80B cash
     historical: [
       { date: 'Mon', price: 408.3 },
       { date: 'Tue', price: 410.5 },
@@ -64,6 +76,10 @@ const defaultFinanceData = [
     marketCap: 2180000000000,
     peRatio: 72.4,
     dividendYield: 0.02,
+    freeCashFlow: 27000000000,        // $27B FCF
+    outstandingShares: 2460000000,    // 2.46B shares
+    totalDebt: 11000000000,           // $11B debt
+    cashAndEquivalents: 26000000000,  // $26B cash
     historical: [
       { date: 'Mon', price: 840.1 },
       { date: 'Tue', price: 852.3 },
@@ -81,6 +97,10 @@ const defaultFinanceData = [
     marketCap: 520000000000,
     peRatio: 24.2,
     dividendYield: 1.32,
+    freeCashFlow: 15000000000,        // $15B FCF Proxy
+    outstandingShares: 960000000,     // 960M shares Proxy
+    totalDebt: 0,
+    cashAndEquivalents: 4500000000,   // Cash reserve
     historical: [
       { date: 'Mon', price: 532.5 },
       { date: 'Tue', price: 534.2 },
@@ -98,6 +118,10 @@ const defaultFinanceData = [
     marketCap: 240000000000,
     peRatio: 32.1,
     dividendYield: 0.58,
+    freeCashFlow: 8000000000,         // $8B FCF Proxy
+    outstandingShares: 510000000,     // 510M shares Proxy
+    totalDebt: 0,
+    cashAndEquivalents: 2500000000,
     historical: [
       { date: 'Mon', price: 451.2 },
       { date: 'Tue', price: 455.0 },
@@ -143,6 +167,10 @@ export async function GET(request: Request) {
             marketCap: dbItem.marketCap,
             peRatio: dbItem.peRatio,
             dividendYield: dbItem.dividendYield,
+            freeCashFlow: dbItem.price * 10000000,        // Proportional proxy
+            outstandingShares: 100000000,
+            totalDebt: dbItem.price * 5000000,
+            cashAndEquivalents: dbItem.price * 3000000,
             historical: [
               { date: 'Mon', price: dbItem.price * 0.98 },
               { date: 'Tue', price: dbItem.price * 1.01 },
@@ -164,6 +192,10 @@ export async function GET(request: Request) {
           marketCap: isEtf ? 150000000000 : 850000000000,
           peRatio: isEtf ? 22.1 : 28.5,
           dividendYield: isEtf ? 1.45 : 0.85,
+          freeCashFlow: 5000000000,
+          outstandingShares: 1000000000,
+          totalDebt: 3000000000,
+          cashAndEquivalents: 4000000000,
           historical: [
             { date: 'Mon', price: 240.2 },
             { date: 'Tue', price: 241.9 },
@@ -216,6 +248,10 @@ export async function GET(request: Request) {
             marketCap: item.marketCap,
             peRatio: item.peRatio,
             dividendYield: item.dividendYield,
+            freeCashFlow: matched?.freeCashFlow || item.price * 10000000,
+            outstandingShares: matched?.outstandingShares || 100000000,
+            totalDebt: matched?.totalDebt || item.price * 5000000,
+            cashAndEquivalents: matched?.cashAndEquivalents || item.price * 3000000,
             historical: matched?.historical || [
               { date: 'Mon', price: item.price * 0.98 },
               { date: 'Tue', price: item.price * 1.01 },
