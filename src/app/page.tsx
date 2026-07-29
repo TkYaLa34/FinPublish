@@ -173,7 +173,7 @@ export default function HomeFeed() {
 
   return (
     <div className="space-y-12">
-      {/* Active User Badge */}
+      {/* Active User Badge for Multi-Tenancy feedback */}
       {userEmail && (
         <div className="flex items-center space-x-2 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5 max-w-max text-xs text-blue-800 font-semibold shadow-sm">
           <UserCheck className="w-4 h-4 text-blue-600" />
@@ -191,10 +191,10 @@ export default function HomeFeed() {
         </p>
       </div>
 
-      {/* Main workspace layout */}
+      {/* Main workspace layout: Portfolio Summary & Watchlist next to search / board */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Left Side: Stocks, Charts, & DCF Valuation Builder (2 Cols) */}
+        {/* Left Side: Stocks & Analysis (2 Cols) */}
         <div className="lg:col-span-2 space-y-8">
 
           {/* US Stock / ETF Search Section */}
@@ -350,7 +350,7 @@ export default function HomeFeed() {
             </h2>
             <p className="text-xs text-slate-500">Track and trade simulated US equities or manage favorite watchlists</p>
           </div>
-
+พ
           <PortfolioSummary
             userId={activeUserId}
             onRefreshTrigger={refreshCounter}
