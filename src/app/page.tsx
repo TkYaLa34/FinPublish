@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ValuationCard } from '@/components/finance/valuation-card';
 import { FinancialChart } from '@/components/finance/charts';
+import { DCFValuationCard } from '@/components/finance/dcf-valuation';
 import { WatchlistWidget } from '@/components/finance/watchlist';
 import { PortfolioSummary } from '@/components/finance/portfolio';
 import { TradeModal } from '@/components/finance/trade-modal';
@@ -14,6 +15,10 @@ import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, Briefcase, Use
 
 interface FinanceTickerWithHist extends FinancialData {
   historical: { date: string; price: number }[];
+  freeCashFlow: number;
+  outstandingShares: number;
+  totalDebt: number;
+  cashAndEquivalents: number;
 }
 
 export default function HomeFeed() {
@@ -257,11 +262,23 @@ export default function HomeFeed() {
                   </div>
                   <ValuationCard {...searchResult} />
                 </div>
-                <div className="md:col-span-2">
-                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
-                  <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-                    <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+                <div className="md:col-span-2 space-y-6">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">{searchResult.symbol} Trend Price Chart</p>
+                    <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                      <FinancialChart symbol={searchResult.symbol} data={searchResult.historical} />
+                    </div>
                   </div>
+                  {/* Dynamic DCF Builder for Search Result */}
+                  <DCFValuationCard
+                    symbol={searchResult.symbol}
+                    name={searchResult.name}
+                    price={searchResult.price}
+                    freeCashFlow={searchResult.freeCashFlow}
+                    outstandingShares={searchResult.outstandingShares}
+                    totalDebt={searchResult.totalDebt}
+                    cashAndEquivalents={searchResult.cashAndEquivalents}
+                  />
                 </div>
               </div>
             )}
@@ -295,17 +312,30 @@ export default function HomeFeed() {
             </div>
 
             {selectedTicker && (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {selectedTicker.symbol} Performance Trend
-                    </h3>
-                    <p className="text-xs text-slate-500">{selectedTicker.name}</p>
+              <div className="space-y-6">
+                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {selectedTicker.symbol} Performance Trend
+                      </h3>
+                      <p className="text-xs text-slate-500">{selectedTicker.name}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-400">Past 5 Trading Days</span>
                   </div>
-                  <span className="text-xs font-semibold text-slate-400">Past 5 Trading Days</span>
+                  <FinancialChart symbol={selectedTicker.symbol} data={selectedTicker.historical} />
                 </div>
-                <FinancialChart symbol={selectedTicker.symbol} data={selectedTicker.historical} />
+
+                {/* Real-time interactive DCF valuation card for selected stock */}
+                <DCFValuationCard
+                  symbol={selectedTicker.symbol}
+                  name={selectedTicker.name}
+                  price={selectedTicker.price}
+                  freeCashFlow={selectedTicker.freeCashFlow}
+                  outstandingShares={selectedTicker.outstandingShares}
+                  totalDebt={selectedTicker.totalDebt}
+                  cashAndEquivalents={selectedTicker.cashAndEquivalents}
+                />
               </div>
             )}
           </section>
@@ -320,15 +350,13 @@ export default function HomeFeed() {
             </h2>
             <p className="text-xs text-slate-500">Track and trade simulated US equities or manage favorite watchlists</p>
           </div>
-
-          {/* Portfolio Summary widget with real multi-tenant activeUserId */}
+พ
           <PortfolioSummary
             userId={activeUserId}
             onRefreshTrigger={refreshCounter}
             onOpenTradeModal={() => setIsTradeOpen(true)}
           />
 
-          {/* Watchlist widget with real multi-tenant activeUserId */}
           <WatchlistWidget
             userId={activeUserId}
             onSelectSymbol={handleSelectSymbol}
@@ -381,7 +409,7 @@ export default function HomeFeed() {
         </div>
       </section>
 
-      {/* Trade Modal Component with real multi-tenant activeUserId */}
+      {/* Trade Modal Component */}
       <TradeModal
         isOpen={isTradeOpen}
         onClose={() => setIsTradeOpen(false)}
