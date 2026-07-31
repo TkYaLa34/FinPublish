@@ -23,11 +23,14 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
       case 'TECH': {
         modelUsed = 'Technology Multi-Year FCF Weighted Model';
 
+        // Compute base FCF from multi-year FCF inputs if present
         let baseFCF = input.freeCashFlow ?? (price * shares * 0.04);
         if (input.multiYearFcf && input.multiYearFcf.length >= 3) {
+          // Use the average of last years FCF to initialize FCF projection
           baseFCF = input.multiYearFcf.reduce((a, b) => a + b, 0) / input.multiYearFcf.length;
         }
 
+        // Tech Sector uses: 70% 5-Year DCF + 30% EV/EBITDA Multiple model, adjusted by Operating Margin
         const marginMultiplier = input.operatingMargin ? (1 + input.operatingMargin) : 1.15;
         const dcfResult = calculateDCF(price, {
           freeCashFlow: baseFCF,
@@ -68,6 +71,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
           baseFCF = input.multiYearFcf.reduce((a, b) => a + b, 0) / input.multiYearFcf.length;
         }
 
+        // Semiconductor uses Gross Margin factor & CapEx penalty
         const marginFactor = input.grossMargin ? (input.grossMargin * 2) : 0.8;
         const capExPenalty = input.capEx ? (input.capEx / (price * shares)) : 0.05;
 
@@ -100,6 +104,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
         const div = input.dividendPerShare ?? 0;
 
         const perShareBV = bv / shares;
+        // Residual Income formula per share + Dividend yield offset
         let resVal = perShareBV + ((roe - r) * perShareBV) / r + div;
         if (isNaN(resVal) || resVal <= 0) resVal = price * 0.8;
 
@@ -119,6 +124,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
         const ev = input.embeddedValue ?? (price * shares * 0.9);
         const roe = input.returnOnEquity ?? 0.11;
 
+        // Embedded Value + ROE future growth credit
         const perShareEV = ev / shares;
         let insVal = perShareEV * (1 + (roe - g));
         if (isNaN(insVal) || insVal <= 0) insVal = price * 0.85;
@@ -138,6 +144,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
         const prob = input.phaseSuccessProbability ?? 0.65;
         const revenue = input.projectedRevenue ?? (price * shares * 0.15);
 
+        // Discount peak sales at Year 5, then risk adjust
         const pvRevenue = revenue / Math.pow(1 + d, 5);
         const rNPV = pvRevenue * prob;
         let rNPVPerShare = rNPV / shares;
@@ -157,13 +164,14 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
         modelUsed = 'REIT NAV & FFO Multiples Valuation';
 
         const nav = input.nav ?? price;
-        const ffo = input.affo ?? input.ffo ?? (price * shares * 0.08);
+        const ffo = input.affo ?? input.ffo ?? (price * shares * 0.08); // Prefer AFFO if available
         const occupancy = input.occupancyRate ?? 0.95;
         const dpu = input.distributionPerUnit ?? 0;
 
         let ffoMultipleVal = (ffo * 15 * occupancy) / shares;
         if (isNaN(ffoMultipleVal) || ffoMultipleVal <= 0) ffoMultipleVal = price * 0.9;
 
+        // Weighted Average + Dividend credit
         intrinsicValue = ((0.6 * nav) + (0.4 * ffoMultipleVal)) * occupancy + dpu;
         breakdown = {
           netAssetValuePerShare: Number(nav.toFixed(2)),
@@ -181,6 +189,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
         const debt = input.totalDebt ?? (price * shares * 0.40);
         const capEx = input.capEx ?? (price * shares * 0.05);
 
+        // Utilities use 10x EBITDA multiple, heavily penalizing high debt leverage
         const enterpriseValue = ebitda * 10;
         const netCapExDebtAdj = capEx - (debt * 0.05);
         const equityValue = enterpriseValue + netCapExDebtAdj;
@@ -198,6 +207,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
       }
 
       default: {
+        // Fallback: Standard DCF Model
         modelUsed = 'Standard 5-Year DCF (Fallback)';
         const dcfResult = calculateDCF(price, {
           freeCashFlow: input.freeCashFlow ?? (price * shares * 0.04),
@@ -217,6 +227,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
     }
   } catch (error) {
     console.error('Valuation routing failed, reverting to standard fallback DCF:', error);
+    // Silent Fallback
     const dcfResult = calculateDCF(price, {
       freeCashFlow: input.freeCashFlow ?? (price * shares * 0.04),
       outstandingShares: shares,
@@ -229,6 +240,7 @@ export function calculateIntrinsicValue(sector: SectorType, input: CompanyValuat
     intrinsicValue = dcfResult.intrinsicValue;
   }
 
+  // Margin of Safety calculation
   const marginOfSafety = ((intrinsicValue - price) / intrinsicValue) * 100;
 
   return {

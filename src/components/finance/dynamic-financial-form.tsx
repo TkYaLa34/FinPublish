@@ -1,27 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SectorType, CompanyValuationInput, ValuationResult } from '@/types/valuation';
 import { calculateIntrinsicValue } from '@/lib/valuation-router';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { StatusBadge } from './dashboard-ui';
-import { Calculator, HelpCircle, ArrowUpRight, ArrowDownRight, CheckCircle2, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Calculator, HelpCircle, ArrowUpRight, ArrowDownRight, CheckCircle2 } from 'lucide-react';
 
 // ============================================================================
-// CONFIGURATION-DRIVEN SCHEMA DEFINITIONS (SECTION 1 & 2)
+// CONFIGURATION-DRIVEN SCHEMA DEFINITIONS (SECTION 1)
 // ============================================================================
 
 export interface FormFieldSchema {
   name: keyof CompanyValuationInput;
   label: string;
-  type: 'number' | 'percentage' | 'currency' | 'multiyear';
-  defaultValue: any;
+  type: 'number' | 'percentage';
+  defaultValue: number;
   min?: number;
   max?: number;
   step?: number;
   description: string;
-  required?: boolean;
 }
 
 export interface ValuationModelConfig {
@@ -42,461 +41,183 @@ export interface SectorConfig {
   subSectors: SubSectorConfig[];
 }
 
-// Full sector specifications mapping precisely to requested financial blueprints
+// 1. Definition of sectors and sub-sectors
 export const SECTORS: SectorConfig[] = [
   {
     id: 'TECH',
     name: 'Technology',
     subSectors: [
-      { id: 'tech_software', name: 'Software & Cloud Services', modelId: 'tech_multi_year' },
-      { id: 'tech_internet', name: 'Internet Platforms', modelId: 'tech_multi_year' },
-    ]
-  },
-  {
-    id: 'SEMICONDUCTOR',
-    name: 'Semiconductor',
-    subSectors: [
-      { id: 'semi_foundry', name: 'Semiconductor Foundry & Fab', modelId: 'semi_multi_year' },
-      { id: 'semi_design', name: 'Fabless IC Design', modelId: 'semi_multi_year' },
+      { id: 'tech_software', name: 'Software & SaaS', modelId: 'tech_weighted' },
+      { id: 'tech_hardware', name: 'Hardware & Semiconductors', modelId: 'tech_weighted' },
+      { id: 'tech_internet', name: 'Internet Services & Platforms', modelId: 'tech_weighted' },
     ]
   },
   {
     id: 'FINANCIAL',
-    name: 'Financial Services (Banks)',
+    name: 'Financial Services',
     subSectors: [
-      { id: 'fin_banking', name: 'Commercial Banking', modelId: 'financial_bank' },
-      { id: 'fin_assets', name: 'Asset Management', modelId: 'financial_bank' },
+      { id: 'fin_banking', name: 'Commercial Banking', modelId: 'financial_residual' },
+      { id: 'fin_insurance', name: 'Insurance Underwriting', modelId: 'financial_residual' },
+      { id: 'fin_assets', name: 'Asset Management', modelId: 'financial_residual' },
     ]
   },
   {
-    id: 'INSURANCE',
-    name: 'Insurance',
+    id: 'BIOTECH',
+    name: 'Biotechnology & Pharma',
     subSectors: [
-      { id: 'ins_life', name: 'Life & Annuity', modelId: 'insurance_ev' },
-      { id: 'ins_pnc', name: 'Property & Casualty', modelId: 'insurance_ev' },
+      { id: 'bio_therapeutics', name: 'Therapeutics & Genomics', modelId: 'biotech_rnpv' },
+      { id: 'bio_devices', name: 'Medical Devices', modelId: 'biotech_rnpv' },
     ]
   },
   {
     id: 'REIT',
     name: 'Real Estate (REIT)',
     subSectors: [
-      { id: 'reit_residential', name: 'Residential Real Estate', modelId: 'reit_advanced' },
-      { id: 'reit_commercial', name: 'Commercial & Office REITs', modelId: 'reit_advanced' },
-    ]
-  },
-  {
-    id: 'UTILITIES',
-    name: 'Regulated Utilities',
-    subSectors: [
-      { id: 'util_power', name: 'Electricity Transmission', modelId: 'utilities_regulated' },
-      { id: 'util_water', name: 'Water Distribution Systems', modelId: 'utilities_regulated' },
+      { id: 'reit_residential', name: 'Residential Properties', modelId: 'reit_nav_ffo' },
+      { id: 'reit_commercial', name: 'Commercial & Office REITs', modelId: 'reit_nav_ffo' },
+      { id: 'reit_healthcare', name: 'Healthcare REITs', modelId: 'reit_nav_ffo' },
     ]
   },
   {
     id: 'OTHER',
     name: 'Other Sectors',
     subSectors: [
-      { id: 'other_retail', name: 'Retail & Consumer Goods', modelId: 'other_generic' },
-      { id: 'other_mfg', name: 'Manufacturing & Industrial', modelId: 'other_generic' },
+      { id: 'other_retail', name: 'Retail & Consumer Goods', modelId: 'standard_dcf' },
+      { id: 'other_mfg', name: 'Manufacturing & Industrial', modelId: 'standard_dcf' },
     ]
   }
 ];
 
-// Configuration schemas for exact specified field outputs
+// 2. Definition of valuation model schemas containing inputs dynamically mapped (No hardcoded conditionals!)
 export const VALUATION_MODELS: Record<string, ValuationModelConfig> = {
-  tech_multi_year: {
-    id: 'tech_multi_year',
-    name: 'Technology Multi-Year FCF & Operating Margin Blueprint',
+  tech_weighted: {
+    id: 'tech_weighted',
+    name: 'Tech Weighted Model (70% DCF + 30% EV/EBITDA)',
     fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 150, min: 0.1, required: true, description: 'Current market value of one share.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'Total outstanding share volume.' },
-      { name: 'multiYearFcf', label: 'Multi-Year Free Cash Flows ($)', type: 'multiyear', defaultValue: [75000000, 85000000, 98000000], required: true, description: 'FCF series (Requires at least 3 years for historical cycles).' },
-      { name: 'growthRate', label: 'Revenue Growth Rate', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 1.0, required: true, description: 'Projected annualized tech segment revenue growth.' },
-      { name: 'operatingMargin', label: 'Operating Margin (%)', type: 'percentage', defaultValue: 0.22, min: 0.0, max: 0.95, required: true, description: 'EBIT relative to total projected revenues.' },
-      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'Perpetual terminal growth rate multiplier.' },
-      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.09, min: 0.02, max: 0.4, required: true, description: 'The cost of capital used to discount future cash flows.' }
+      { name: 'price', label: 'Current Price ($)', type: 'number', defaultValue: 150, min: 0.1, description: 'The current market share price of the company.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, description: 'Total shares currently held by all shareholders.' },
+      { name: 'freeCashFlow', label: 'Base Free Cash Flow ($)', type: 'number', defaultValue: 80000000, description: 'Operating cash flow minus capital expenditures.' },
+      { name: 'growthRate', label: 'Annual Growth Rate (Year 1-5)', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 1.0, step: 0.01, description: 'Projected annualized growth in Free Cash Flow.' },
+      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.09, min: 0.02, max: 0.4, step: 0.005, description: 'The required rate of return / Weighted Average Cost of Capital.' },
+      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, step: 0.001, description: 'Growth rate into perpetuity beyond year 5.' },
+      { name: 'ebitda', label: 'EBITDA ($)', type: 'number', defaultValue: 120000000, description: 'Earnings Before Interest, Taxes, Depreciation, and Amortization.' },
+      { name: 'evToEbitdaMultiplier', label: 'EV/EBITDA Multiple Target', type: 'number', defaultValue: 18, min: 1, max: 100, step: 0.5, description: 'Industry benchmark multiple of Enterprise Value to EBITDA.' },
+      { name: 'totalDebt', label: 'Total Debt ($)', type: 'number', defaultValue: 30000000, description: 'Total short-term and long-term debt liabilities.' },
+      { name: 'cashAndEquivalents', label: 'Cash & Equivalents ($)', type: 'number', defaultValue: 50000000, description: 'Total cash and highly liquid securities on book.' }
     ]
   },
-  semi_multi_year: {
-    id: 'semi_multi_year',
-    name: 'Semiconductor Cyclical Gross Margin & CapEx Blueprint',
+  financial_residual: {
+    id: 'financial_residual',
+    name: 'Residual Income Valuation Model',
     fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 120, min: 0.1, required: true, description: 'Current market value per share.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 8000000, min: 1000, required: true, description: 'Total shares outstanding.' },
-      { name: 'multiYearFcf', label: 'Multi-Year Free Cash Flows ($)', type: 'multiyear', defaultValue: [120000000, 140000000, 95000000], required: true, description: 'FCF series reflecting hardware cycle dynamics.' },
-      { name: 'grossMargin', label: 'Gross Margin (%)', type: 'percentage', defaultValue: 0.52, min: 0.05, max: 0.95, required: true, description: 'Hardware fabrication and packaging gross profitability margin.' },
-      { name: 'capEx', label: 'Capital Expenditures (CapEx) ($)', type: 'currency', defaultValue: 45000000, required: true, description: 'Reinvestment in semiconductor cleanrooms and advanced lithography machinery.' },
-      { name: 'growthRate', label: 'Semiconductor Revenue Growth', type: 'percentage', defaultValue: 0.15, min: -0.5, max: 1.5, required: true, description: 'Forecasted cyclic revenue growth rate.' },
-      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'Perpetual growth factor.' },
-      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'The required rate of return multiplier.' }
+      { name: 'price', label: 'Current Price ($)', type: 'number', defaultValue: 45, min: 0.1, description: 'The current market share price of the financial institution.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 5000000, min: 1000, description: 'Total outstanding shares of common stock.' },
+      { name: 'bookValue', label: 'Total Book Value of Equity ($)', type: 'number', defaultValue: 250000000, description: 'The total assets minus total liabilities on the balance sheet.' },
+      { name: 'returnOnEquity', label: 'Return on Equity (ROE)', type: 'percentage', defaultValue: 0.13, min: -0.5, max: 1.0, step: 0.005, description: 'Net income divided by total shareholders equity.' },
+      { name: 'requiredReturn', label: 'Cost of Equity / Required Return', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, step: 0.005, description: 'The required rate of return on equity investment.' }
     ]
   },
-  financial_bank: {
-    id: 'financial_bank',
-    name: 'Commercial Bank Book Value & Residual Income Blueprint',
+  biotech_rnpv: {
+    id: 'biotech_rnpv',
+    name: 'rNPV (Risk-Adjusted Net Present Value) Model',
     fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 45, min: 0.1, required: true, description: 'Current market value per share.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 5000000, min: 1000, required: true, description: 'Outstanding share volume.' },
-      { name: 'bookValue', label: 'Book Value ($)', type: 'currency', defaultValue: 250000000, required: true, description: 'Total common equity / net book value on the balance sheet.' },
-      { name: 'returnOnEquity', label: 'Return on Equity (ROE)', type: 'percentage', defaultValue: 0.13, min: -0.5, max: 1.0, required: true, description: 'Net income divided by common book equity.' },
-      { name: 'dividendPerShare', label: 'Dividend Per Share ($)', type: 'currency', defaultValue: 1.80, description: 'Total annualized dividend payout per common share.' },
-      { name: 'requiredReturn', label: 'Cost of Equity / Required Return', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'Minimum expected rate of return for equity investors.' },
-      { name: 'growthRate', label: 'Expected Growth Rate', type: 'percentage', defaultValue: 0.04, min: -0.1, max: 0.15, description: 'Perpetual growth of the bank residual income asset base.' }
+      { name: 'price', label: 'Current Price ($)', type: 'number', defaultValue: 12, min: 0.1, description: 'The current market share price.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 8000000, min: 1000, description: 'Total shares outstanding.' },
+      { name: 'projectedRevenue', label: 'Projected Peak Sales ($)', type: 'number', defaultValue: 50000000, description: 'Expected peak annual revenues upon therapeutic/device launch.' },
+      { name: 'phaseSuccessProbability', label: 'Phase Success Probability', type: 'percentage', defaultValue: 0.45, min: 0.0, max: 1.0, step: 0.01, description: 'Probability of drug approval based on current clinical trial phase.' },
+      { name: 'discountRate', label: 'Biotech Discount Rate', type: 'percentage', defaultValue: 0.15, min: 0.05, max: 0.5, step: 0.01, description: 'Higher discount rate representing biotech pipeline development risk.' }
     ]
   },
-  insurance_ev: {
-    id: 'insurance_ev',
-    name: 'Insurance Embedded Value Blueprint',
+  reit_nav_ffo: {
+    id: 'reit_nav_ffo',
+    name: 'REIT NAV & FFO Multiples Valuation',
     fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 60, min: 0.1, required: true, description: 'Current market share value.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 4000000, min: 1000, required: true, description: 'Outstanding share volume.' },
-      { name: 'embeddedValue', label: 'Embedded Value (EV) ($)', type: 'currency', defaultValue: 280000000, required: true, description: 'Net asset value of the insurance operations plus present value of active in-force business.' },
-      { name: 'returnOnEquity', label: 'Return on Equity (ROE)', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 0.8, required: true, description: 'Operating return on capital.' },
-      { name: 'dividendPerShare', label: 'Dividend Payout ($)', type: 'currency', defaultValue: 1.50, description: 'Annualized dividend stream.' },
-      { name: 'growthRate', label: 'Growth Rate', type: 'percentage', defaultValue: 0.035, min: -0.05, max: 0.12, description: 'The long-term growth rate of life/annuity portfolios.' }
+      { name: 'price', label: 'Current Price ($)', type: 'number', defaultValue: 85, min: 0.1, description: 'The current market share price.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 12000000, min: 1000, description: 'Total shares outstanding.' },
+      { name: 'nav', label: 'Net Asset Value (NAV) Per Share ($)', type: 'number', defaultValue: 90, min: 1, description: 'Calculated value of physical real estate portfolio per share.' },
+      { name: 'ffo', label: 'Funds From Operations (FFO) ($)', type: 'number', defaultValue: 96000000, description: 'Operating cash flow excluding depreciation and gains from asset sales.' }
     ]
   },
-  reit_advanced: {
-    id: 'reit_advanced',
-    name: 'REIT Net Asset Value & AFFO Multiple Blueprint',
+  standard_dcf: {
+    id: 'standard_dcf',
+    name: 'Standard 5-Year DCF Model',
     fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 80, min: 0.1, required: true, description: 'Current market share price.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 15000000, min: 1000, required: true, description: 'Total shares outstanding.' },
-      { name: 'nav', label: 'Net Asset Value (NAV) Per Share ($)', type: 'currency', defaultValue: 85, required: true, description: 'Calculated fair asset value of properties minus liabilities per share.' },
-      { name: 'occupancyRate', label: 'Occupancy Rate (%)', type: 'percentage', defaultValue: 0.94, min: 0.4, max: 1.0, required: true, description: 'Percentage of leased real-estate space across portfolios.' },
-      { name: 'affo', label: 'Adjusted Funds From Operations (AFFO) ($)', type: 'currency', defaultValue: 120000000, required: true, description: 'Cash FFO adjusted for capital lease maintenance and recurring tenant improvements.' },
-      { name: 'distributionPerUnit', label: 'Distribution Per Unit (DPU) ($)', type: 'currency', defaultValue: 4.20, description: 'Annualized dividend distribution per REIT share.' },
-      { name: 'growthRate', label: 'Expected Growth Rate', type: 'percentage', defaultValue: 0.03, min: -0.05, max: 0.12, description: 'Long term compound growth of rent agreements.' }
-    ]
-  },
-  utilities_regulated: {
-    id: 'utilities_regulated',
-    name: 'Regulated Utilities EBITDA & CapEx Blueprint',
-    fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 55, min: 0.1, required: true, description: 'Current market share price.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 12000000, min: 1000, required: true, description: 'Outstanding share volume.' },
-      { name: 'ebitda', label: 'Utility EBITDA ($)', type: 'currency', defaultValue: 180000000, required: true, description: 'Regulated utility earnings before interest, tax, and depreciation.' },
-      { name: 'capEx', label: 'Infrastructure CapEx ($)', type: 'currency', defaultValue: 65000000, required: true, description: 'Reinvestment in utility grids and pipeline assets.' },
-      { name: 'totalDebt', label: 'Utility Debt Liabilities ($)', type: 'currency', defaultValue: 450000000, required: true, description: 'Total outstanding utilities bonds and liabilities.' },
-      { name: 'growthRate', label: 'Regulated Assets Growth Rate', type: 'percentage', defaultValue: 0.025, min: -0.05, max: 0.10, description: 'Regulated tariff growth factor.' }
-    ]
-  },
-  other_generic: {
-    id: 'other_generic',
-    name: 'Other Sectors DCF Blueprint with Custom Fields',
-    fields: [
-      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 50, min: 0.1, required: true, description: 'Current market value.' },
-      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'Outstanding shares.' },
-      { name: 'freeCashFlow', label: 'Base Year Free Cash Flow ($)', type: 'currency', defaultValue: 40000000, required: true, description: 'Operating cash flow minus CapEx.' },
-      { name: 'growthRate', label: 'Annual Growth Rate', type: 'percentage', defaultValue: 0.07, min: -0.2, max: 1.0, required: true, description: 'Annual compound growth rate.' },
-      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.02, min: 0.0, max: 0.08, required: true, description: 'Growth into infinity.' },
-      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'Cost of capital.' }
+      { name: 'price', label: 'Current Price ($)', type: 'number', defaultValue: 50, min: 0.1, description: 'The current market share price.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, description: 'Total outstanding shares.' },
+      { name: 'freeCashFlow', label: 'Base Free Cash Flow ($)', type: 'number', defaultValue: 40000000, description: 'The base year Free Cash Flow to start projections.' },
+      { name: 'growthRate', label: 'Annual Growth Rate (Year 1-5)', type: 'percentage', defaultValue: 0.07, min: -0.2, max: 1.0, step: 0.005, description: 'Annualized growth in Free Cash Flow.' },
+      { name: 'discountRate', label: 'Discount Rate', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, step: 0.005, description: 'The required rate of return or discount factor.' },
+      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.02, min: 0.0, max: 0.08, step: 0.001, description: 'Perpetual terminal growth rate.' },
+      { name: 'totalDebt', label: 'Total Debt ($)', type: 'number', defaultValue: 10000000, description: 'Total interest-bearing debt liabilities.' },
+      { name: 'cashAndEquivalents', label: 'Cash & Equivalents ($)', type: 'number', defaultValue: 15000000, description: 'Total cash balance.' }
     ]
   }
 };
-
-// ============================================================================
-// REUSABLE TYPED INPUT COMPONENTS (SECTION 3)
-// ============================================================================
-
-interface BaseInputProps {
-  label: string;
-  value: any;
-  onChange: (val: any) => void;
-  error?: string;
-  description: string;
-  required?: boolean;
-}
-
-export const FinancialInput = React.memo(({ label, value, onChange, error, description, required }: BaseInputProps) => (
-  <div className="space-y-1.5 flex flex-col w-full">
-    <div className="flex items-center justify-between">
-      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
-        {label}
-        {required && <span className="text-rose-500 ml-0.5" aria-hidden="true">*</span>}
-        <div className="group relative ml-1 inline-flex items-center justify-center cursor-help">
-          <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-          <span className="pointer-events-none absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity w-48 z-10 font-normal leading-normal whitespace-normal">
-            {description}
-          </span>
-        </div>
-      </span>
-      {error && <span className="text-[10px] font-bold text-rose-500">{error}</span>}
-    </div>
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => {
-        const val = e.target.value === '' ? '' : parseFloat(e.target.value);
-        onChange(val);
-      }}
-      className={`w-full px-3 py-2 border rounded-md outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-indigo-500 dark:focus:border-indigo-400 ${
-        error ? 'border-rose-400 focus:border-rose-500' : 'border-slate-200 dark:border-slate-700'
-      }`}
-    />
-  </div>
-));
-FinancialInput.displayName = 'FinancialInput';
-
-export const PercentageInput = React.memo(({ label, value, onChange, error, description, required }: BaseInputProps) => {
-  const displayVal = typeof value === 'number' ? Math.round(value * 1000) / 10 : 0;
-
-  return (
-    <div className="space-y-1.5 flex flex-col w-full">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
-          {label}
-          {required && <span className="text-rose-500 ml-0.5" aria-hidden="true">*</span>}
-          <div className="group relative ml-1 inline-flex items-center justify-center cursor-help">
-            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-            <span className="pointer-events-none absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity w-48 z-10 font-normal leading-normal whitespace-normal">
-              {description}
-            </span>
-          </div>
-        </span>
-        <div className="flex items-center space-x-2">
-          {error && <span className="text-[10px] font-bold text-rose-500">{error}</span>}
-          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{displayVal}%</span>
-        </div>
-      </div>
-      <div className="flex items-center space-x-3 h-9">
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.005"
-          value={typeof value === 'number' ? value : 0.10}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
-          className="flex-1 accent-indigo-600 dark:accent-indigo-400 cursor-pointer h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none"
-        />
-      </div>
-    </div>
-  );
-});
-PercentageInput.displayName = 'PercentageInput';
-
-interface MultiYearProps {
-  label: string;
-  value: number[];
-  onChange: (val: number[]) => void;
-  error?: string;
-  description: string;
-}
-
-export const MultiYearListInput = React.memo(({ label, value = [], onChange, error, description }: MultiYearProps) => {
-  const [newValStr, setNewValStr] = useState('');
-
-  const handleAdd = () => {
-    const val = parseFloat(newValStr);
-    if (!isNaN(val) && val > 0) {
-      onChange([...value, val]);
-      setNewValStr('');
-    }
-  };
-
-  const handleRemove = (index: number) => {
-    const updated = value.filter((_, idx) => idx !== index);
-    onChange(updated);
-  };
-
-  return (
-    <div className="space-y-3 flex flex-col w-full bg-slate-50/50 dark:bg-slate-800/20 p-4 border border-slate-100 dark:border-slate-800 rounded-xl">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
-          {label}
-          <span className="text-rose-500 ml-0.5" aria-hidden="true">*</span>
-          <div className="group relative ml-1 inline-flex items-center justify-center cursor-help">
-            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
-            <span className="pointer-events-none absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity w-48 z-10 font-normal leading-normal whitespace-normal">
-              {description}
-            </span>
-          </div>
-        </span>
-        {error && <span className="text-[10px] font-bold text-rose-500">{error}</span>}
-      </div>
-
-      {/* Inputs Dynamic Years List */}
-      <div className="flex flex-wrap gap-2">
-        {value.map((fcf, idx) => (
-          <div key={idx} className="flex items-center space-x-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-xs font-semibold rounded-md shadow-sm">
-            <span>Year {idx + 1}: ${fcf.toLocaleString()}</span>
-            <button
-              type="button"
-              onClick={() => handleRemove(idx)}
-              className="text-slate-400 hover:text-rose-500 transition-colors"
-              title="Remove Year"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <input
-          type="number"
-          placeholder="e.g. 95000000"
-          value={newValStr}
-          onChange={(e) => setNewValStr(e.target.value)}
-          className="flex-1 px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs rounded-md outline-none focus:border-indigo-500"
-        />
-        <Button
-          type="button"
-          onClick={handleAdd}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 flex items-center space-x-1"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add Year</span>
-        </Button>
-      </div>
-      <p className="text-[10px] text-slate-400 dark:text-slate-500">Provide chronologically ordered cash flows. Required: At least 3 years.</p>
-    </div>
-  );
-});
-MultiYearListInput.displayName = 'MultiYearListInput';
-
-// ============================================================================
-// VALUE FORMATTING HEURISTIC FOR BREAKDOWN VALUES (USER REQUEST)
-// ============================================================================
-const formatBreakdownValue = (key: string, value: any): string => {
-  if (typeof value !== 'number') return String(value);
-
-  const keyLower = key.toLowerCase();
-
-  // Format multipliers/ratios with 'x' suffix instead of '$' (User Request)
-  if (keyLower.includes('multiplier') || keyLower.includes('multiple') || keyLower.includes('ratio')) {
-    return `${value.toLocaleString()}x`;
-  }
-
-  // Format rates, probabilities, and margins as percentages
-  if (keyLower.includes('rate') || keyLower.includes('margin') || keyLower.includes('probability') || keyLower.includes('percent') || (value > 0 && value < 1)) {
-    return `${(value * 100).toFixed(1)}%`;
-  }
-
-  // Format monetary values
-  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-// ============================================================================
-// MAIN COMPONENT (SECTIONS 4, 5, 6, 7, 8, 9)
-// ============================================================================
 
 export const DynamicFinancialForm = () => {
-  // Selector States
+  // 1. Selector States
   const [selectedSectorId, setSelectedSectorId] = useState<SectorType>('TECH');
   const [selectedSubSectorId, setSelectedSubSectorId] = useState<string>('tech_software');
-  const [selectedModelId, setSelectedModelId] = useState<string>('tech_multi_year');
+  const [selectedModelId, setSelectedModelId] = useState<string>('tech_weighted');
 
+  // Find active sector config
   const activeSector = useMemo(() => {
     return SECTORS.find(s => s.id === selectedSectorId) || SECTORS[0];
   }, [selectedSectorId]);
 
+  // Find active subsector config
   const activeSubSector = useMemo(() => {
     return activeSector.subSectors.find(ss => ss.id === selectedSubSectorId) || activeSector.subSectors[0];
   }, [activeSector, selectedSubSectorId]);
 
+  // Find active model config based on selection or subsector mapping
   const activeModel = useMemo(() => {
-    return VALUATION_MODELS[selectedModelId] || VALUATION_MODELS['tech_multi_year'];
+    return VALUATION_MODELS[selectedModelId] || VALUATION_MODELS['tech_weighted'];
   }, [selectedModelId]);
 
-  // Form Field Value States
-  const [formInputs, setFormInputs] = useState<Record<string, any>>({});
-  // Form Field Validation Error States (Section 4)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  // 2. Dynamic Input States
+  const [formInputs, setFormInputs] = useState<Record<string, number>>({});
 
-  // Cascading Selection Synchronization (Section 5 & 6)
+  // 3. Synchronize states whenever selectors change
   useEffect(() => {
+    // When sector changes, default to its first subsector
     const targetSub = activeSector.subSectors[0];
     setSelectedSubSectorId(targetSub.id);
     setSelectedModelId(targetSub.modelId);
   }, [selectedSectorId, activeSector]);
 
   useEffect(() => {
+    // When subsector changes, default to its specified model
     if (activeSubSector) {
       setSelectedModelId(activeSubSector.modelId);
     }
   }, [selectedSubSectorId, activeSubSector]);
 
-  // Load configuration-driven default values while preserving unrelated values (Section 6)
   useEffect(() => {
-    const updatedInputs = { ...formInputs };
-
+    // Re-initialize form field states using default values in configuration
+    const initialValues: Record<string, number> = {};
     activeModel.fields.forEach(field => {
-      // Initialize if not already present or if the current value became invalid
-      if (updatedInputs[field.name as string] === undefined) {
-        updatedInputs[field.name as string] = field.defaultValue;
-      }
+      initialValues[field.name as string] = field.defaultValue;
     });
-
-    setFormInputs(updatedInputs);
-    // Clear legacy errors on layout change
-    setFormErrors({});
+    setFormInputs(initialValues);
   }, [activeModel]);
 
-  // Real-time Validation Engine (Section 4)
-  const validateField = useCallback((name: string, value: any, schema: FormFieldSchema): string => {
-    if (schema.required && (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0))) {
-      return `${schema.label} is required.`;
-    }
-
-    if (schema.type === 'multiyear') {
-      if (!Array.isArray(value) || value.length < 3) {
-        return 'At least three years of cash flows are required.';
-      }
-    }
-
-    if (schema.type === 'percentage') {
-      if (typeof value === 'number' && (value < 0 || value > 1)) {
-        return 'Percentage values must be between 0% and 100%.';
-      }
-    }
-
-    if (schema.type === 'currency' || schema.type === 'number') {
-      if (typeof value === 'number' && value < 0) {
-        return 'Value must be a positive number.';
-      }
-      if (schema.min !== undefined && typeof value === 'number' && value < schema.min) {
-        return `${schema.label} must be at least ${schema.min}.`;
-      }
-    }
-
-    return '';
-  }, []);
-
-  const handleFieldChange = useCallback((name: string, value: any) => {
+  // 4. Input Change Handler
+  const handleInputChange = (fieldName: string, value: number) => {
     setFormInputs(prev => ({
       ...prev,
-      [name]: value
+      [fieldName]: value
     }));
+  };
 
-    const schema = activeModel.fields.find(f => f.name === name);
-    if (schema) {
-      const err = validateField(name, value, schema);
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: err
-      }));
-    }
-  }, [activeModel, validateField]);
-
-  // Determine if form state passes all required field validations (Section 7)
-  const isFormValid = useMemo(() => {
-    // Check if any schema field has errors
-    const hasFieldErrors = activeModel.fields.some(field => {
-      const val = formInputs[field.name as string];
-      const err = validateField(field.name as string, val, field);
-      return err !== '';
-    });
-    return !hasFieldErrors;
-  }, [activeModel, formInputs, validateField]);
-
-  // Dynamic Valuation Router Integration (Section 7)
+  // 5. Evaluate calculations dynamically
   const valuationResult = useMemo<ValuationResult | null>(() => {
-    if (!isFormValid) return null;
+    if (Object.keys(formInputs).length === 0) return null;
 
-    const payload: CompanyValuationInput = {
+    // Map form inputs to standard router contract
+    const valuationInput: CompanyValuationInput = {
       symbol: 'CUSTOM',
-      name: `Custom ${activeSector.name} Project`,
+      name: `Custom ${activeSector.name} Valuation`,
       price: formInputs['price'] ?? 100,
       outstandingShares: formInputs['outstandingShares'] ?? 1000000,
       growthRate: formInputs['growthRate'],
@@ -510,32 +231,24 @@ export const DynamicFinancialForm = () => {
       bookValue: formInputs['bookValue'],
       returnOnEquity: formInputs['returnOnEquity'],
       requiredReturn: formInputs['requiredReturn'],
-      dividendPerShare: formInputs['dividendPerShare'],
-      embeddedValue: formInputs['embeddedValue'],
+      phaseSuccessProbability: formInputs['phaseSuccessProbability'],
+      projectedRevenue: formInputs['projectedRevenue'],
       nav: formInputs['nav'],
-      occupancyRate: formInputs['occupancyRate'],
-      affo: formInputs['affo'],
-      distributionPerUnit: formInputs['distributionPerUnit'],
-      capEx: formInputs['capEx'],
-      operatingMargin: formInputs['operatingMargin'],
-      grossMargin: formInputs['grossMargin'],
-      multiYearFcf: formInputs['multiYearFcf']
+      ffo: formInputs['ffo']
     };
 
-    return calculateIntrinsicValue(selectedSectorId, payload);
-  }, [formInputs, selectedSectorId, isFormValid, activeSector]);
+    return calculateIntrinsicValue(selectedSectorId, valuationInput);
+  }, [formInputs, selectedSectorId, activeSector]);
 
   return (
-    <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors"
-          role="form"
-          aria-label="Sector-Specific Valuation form">
+    <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors">
       <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
         <CardTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <Calculator className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           <span>Advanced Multi-Sector Valuation Lab</span>
         </CardTitle>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Load configuration-driven blueprints specifically calibrated for Banks, Software, Utilities, REITs, or Insurers.
+          Dynamically generate financial schemas for real-estate, early-phase pharma, technology systems, or banks.
         </p>
       </CardHeader>
 
@@ -576,65 +289,62 @@ export const DynamicFinancialForm = () => {
           </div>
         </div>
 
-        {/* Step 2: Dynamically Render Valid Fields Only (Section 2 & 3) */}
+        {/* Step 2: Dynamic Input Form Inputs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-2">
           {activeModel.fields.map(field => {
-            const val = formInputs[field.name as string];
-            const err = formErrors[field.name as string];
-
-            if (field.type === 'multiyear') {
-              return (
-                <div key={field.name as string} className="md:col-span-2">
-                  <MultiYearListInput
-                    label={field.label}
-                    value={val || []}
-                    onChange={(newVal) => handleFieldChange(field.name as string, newVal)}
-                    error={err}
-                    description={field.description}
-                  />
-                </div>
-              );
-            }
-
-            if (field.type === 'percentage') {
-              return (
-                <PercentageInput
-                  key={field.name as string}
-                  label={field.label}
-                  value={val}
-                  onChange={(newVal) => handleFieldChange(field.name as string, newVal)}
-                  error={err}
-                  description={field.description}
-                  required={field.required}
-                />
-              );
-            }
+            const val = formInputs[field.name as string] ?? field.defaultValue;
 
             return (
-              <FinancialInput
-                key={field.name as string}
-                label={field.label}
-                value={val === undefined ? '' : val}
-                onChange={(newVal) => handleFieldChange(field.name as string, newVal)}
-                error={err}
-                description={field.description}
-                required={field.required}
-              />
+              <div key={field.name as string} className="space-y-1.5 flex flex-col">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center">
+                    {field.label}
+                    <div className="group relative ml-1 inline-flex items-center justify-center cursor-help">
+                      <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="pointer-events-none absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity w-48 z-10 font-normal leading-normal whitespace-normal">
+                        {field.description}
+                      </span>
+                    </div>
+                  </span>
+
+                  {field.type === 'percentage' && (
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      {(val * 100).toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+
+                {field.type === 'percentage' ? (
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="range"
+                      min={field.min ?? 0}
+                      max={field.max ?? 1}
+                      step={field.step ?? 0.01}
+                      value={val}
+                      onChange={(e) => handleInputChange(field.name as string, parseFloat(e.target.value))}
+                      className="flex-1 accent-indigo-600 dark:accent-indigo-400 cursor-pointer h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none"
+                    />
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    min={field.min}
+                    max={field.max}
+                    step={field.step ?? 1}
+                    value={val}
+                    onChange={(e) => handleInputChange(field.name as string, parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm rounded-md outline-none focus:border-indigo-500 dark:focus:border-indigo-400"
+                  />
+                )}
+              </div>
             );
           })}
         </div>
 
-        {/* Validation Failure Warning Row */}
-        {!isFormValid && (
-          <div className="p-4 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-rose-500" />
-            <span>Valuation calculations paused. Please complete all required inputs and correct any validation issues.</span>
-          </div>
-        )}
-
-        {/* Step 3: Calculation Outputs View with Custom Suffix formatting (Section 1) */}
+        {/* Step 3: Calculation Outputs View */}
         {valuationResult && (
-          <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-6 animate-fadeIn">
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-6">
             <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
               <CheckCircle2 className="w-5 h-5" />
               <p className="text-sm font-bold uppercase tracking-wider">Evaluation Intrinsic Valuation Results</p>
@@ -684,7 +394,7 @@ export const DynamicFinancialForm = () => {
                   <div key={key} className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1')}</span>
                     <p className="font-extrabold text-slate-800 dark:text-slate-200">
-                      {formatBreakdownValue(key, value)}
+                      {typeof value === 'number' ? (value > 1 ? `$${value.toLocaleString()}` : `${(value * 100).toFixed(1)}%`) : String(value)}
                     </p>
                   </div>
                 ))}

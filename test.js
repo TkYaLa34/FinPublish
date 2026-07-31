@@ -33,12 +33,15 @@ try {
   console.warn('Failed to parse .env file:', e);
 }
 
-// Setup ts-node loader so we can import typescript router modules directly
+// Setup ts-node loader so we can import typescript router modules directly (with tsconfig skip)
 require('ts-node').register({
   transpileOnly: true,
+  skipProject: true,
   compilerOptions: {
     module: "commonjs",
-    moduleResolution: "node"
+    target: "es2020",
+    moduleResolution: "node",
+    esModuleInterop: true
   }
 });
 
@@ -49,8 +52,8 @@ async function runTests() {
   console.log('Running test suite for FinPublish...');
 
   try {
-    // 1. Verify standard data contract structures for search responses
-    const financeDataModule = require('./src/app/api/finance/route');
+    // 1. Verify standard data contract structures for search responses (Now from separate lib file)
+    const financeDataModule = require('./src/lib/finance-data');
     const defaultFinanceData = financeDataModule.DEFAULT_STOCKS;
 
     assert.ok(Array.isArray(defaultFinanceData));
