@@ -1,4 +1,4 @@
-export type SectorType = 'TECH' | 'FINANCIAL' | 'BIOTECH' | 'REIT' | 'OTHER';
+export type SectorType = 'TECH' | 'FINANCIAL' | 'BIOTECH' | 'REIT' | 'UTILITIES' | 'SEMICONDUCTOR' | 'INSURANCE' | 'OTHER';
 
 export interface CompanyValuationInput {
   symbol: string;
@@ -32,6 +32,16 @@ export interface CompanyValuationInput {
   nav?: number;                 // Net Asset Value per share
   ffo?: number;                 // Funds From Operations
   capRate?: number;             // Capitalization Rate
+
+  // Extended Advanced Fields
+  embeddedValue?: number;       // Insurance EV
+  occupancyRate?: number;       // REIT occupancy %
+  affo?: number;                // Adjusted Funds From Operations
+  distributionPerUnit?: number; // REIT distributions
+  capEx?: number;               // Capital Expenditures
+  operatingMargin?: number;     // Tech operating margin %
+  grossMargin?: number;         // Semiconductor gross margin %
+  multiYearFcf?: number[];      // Custom multi-year FCF series
 }
 
 export interface ValuationResult {
