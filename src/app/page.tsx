@@ -12,6 +12,7 @@ import { TradeModal } from '@/components/finance/trade-modal';
 import { PortfolioRiskAnalytics } from '@/components/finance/risk-analytics';
 import { PortfolioProvider } from '@/components/finance/portfolio-context';
 import { FinancialDashboard } from '@/components/finance/dashboard-ui';
+import { DynamicFinancialForm } from '@/components/finance/dynamic-financial-form';
 import { Article } from '@/types/article';
 import { FinancialData } from '@/types/finance';
 import { TrendingUp, FileText, ArrowRight, Loader2, Search, Star, Briefcase, UserCheck } from 'lucide-react';
@@ -203,8 +204,11 @@ export default function HomeFeed() {
         {/* Main workspace layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Left Side: Stocks, Charts, & DCF Valuation Builder (2 Cols) */}
+          {/* Left Side: Stocks, Charts, & Dynamic Financial Form (2 Cols) */}
           <div className="lg:col-span-2 space-y-8">
+
+            {/* Sector-Specific Dynamic Financial Input Form */}
+            <DynamicFinancialForm />
 
             {/* US Stock / ETF Search Section */}
             <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4 transition-colors">
