@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { StatusBadge } from './dashboard-ui';
 import { ValuationBadge } from './valuation-badge';
+import { ConfidenceIndicator } from './confidence-indicator';
 import { Calculator, HelpCircle, ArrowUpRight, ArrowDownRight, CheckCircle2, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 // ============================================================================
@@ -526,6 +527,25 @@ export const DynamicFinancialForm = () => {
     return calculateIntrinsicValue(selectedSectorId, payload);
   }, [formInputs, selectedSectorId, isFormValid, activeSector]);
 
+  // Calculate dynamic evaluation confidence score based on data density
+  const confidenceScore = useMemo(() => {
+    if (selectedSectorId === 'TECH' || selectedSectorId === 'SEMICONDUCTOR') {
+      const fcfList = formInputs['multiYearFcf'] || [];
+      if (fcfList.length >= 5) return 95;
+      if (fcfList.length >= 4) return 85;
+      return 75;
+    }
+    if (selectedSectorId === 'BIOTECH') {
+      const prob = formInputs['phaseSuccessProbability'] ?? 0.65;
+      return Math.round(prob * 100);
+    }
+    if (selectedSectorId === 'REIT') {
+      const occ = formInputs['occupancyRate'] ?? 0.95;
+      return Math.round(occ * 100);
+    }
+    return 85; // High fallback for standard utilities/banking book models
+  }, [formInputs, selectedSectorId]);
+
   return (
     <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors"
           role="form"
@@ -656,21 +676,28 @@ export const DynamicFinancialForm = () => {
                 </p>
               </div>
 
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Margin of Safety</span>
-                <div className="flex items-center space-x-2 animate-pulse">
-                  <span className={`text-2xl font-black ${
-                    valuationResult.marginOfSafety >= 10
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : valuationResult.marginOfSafety > 0
-                      ? 'text-amber-500 dark:text-amber-400'
-                      : 'text-rose-600 dark:text-rose-400'
-                  }`}>
-                    {valuationResult.marginOfSafety.toFixed(1)}%
-                  </span>
+              <div className="space-y-1 flex flex-col justify-between h-full">
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Margin of Safety</span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-2xl font-black ${
+                      valuationResult.marginOfSafety >= 10
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : valuationResult.marginOfSafety > 0
+                        ? 'text-amber-500 dark:text-amber-400'
+                        : 'text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {valuationResult.marginOfSafety.toFixed(1)}%
+                    </span>
 
-                  {/* Dynamic integration of new high-fidelity ValuationBadge (User request) */}
-                  <ValuationBadge status={valuationResult.marginOfSafety >= 10 ? 'undervalued' : valuationResult.marginOfSafety > -5 ? 'fair' : 'overvalued'} />
+                    {/* Dynamic integration of new high-fidelity ValuationBadge (User request) */}
+                    <ValuationBadge status={valuationResult.marginOfSafety >= 10 ? 'undervalued' : valuationResult.marginOfSafety > -5 ? 'fair' : 'overvalued'} />
+                  </div>
+                </div>
+
+                {/* Reusable ConfidenceIndicator integration (User Request) */}
+                <div className="pt-2">
+                  <ConfidenceIndicator score={confidenceScore} />
                 </div>
               </div>
             </div>
