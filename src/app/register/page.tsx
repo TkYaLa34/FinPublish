@@ -1,0 +1,121 @@
+"use client";
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Lock, Mail, Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    setLoading(false);
+    if (error) {
+      setMessage({ type: 'error', text: error.message });
+    } else {
+      setMessage({
+        type: 'success',
+        text: 'ลงทะเบียนสำเร็จ! กรุณาตรวจสอบอีเมลของคุณเพื่อยืนยันตน หรือเข้าสู่ระบบได้ทันที',
+      });
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+    }
+  };
+
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center py-12">
+      <Card className="w-full max-w-md shadow-lg border border-slate-200">
+        <CardHeader className="text-center space-y-1 pb-4">
+          <CardTitle className="text-2xl font-extrabold text-slate-900">สมัครสมาชิกใหม่</CardTitle>
+          <p className="text-sm text-slate-500">สมัครบัญชีผู้เขียนบทความทางการเงิน (Author Account)</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">อีเมลผู้ใช้งาน</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Mail className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">รหัสผ่าน</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="•••••••• (ขั้นต่ำ 6 ตัวอักษร)"
+                  required
+                  minLength={6}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 transition-colors text-sm"
+                />
+              </div>
+            </div>
+
+            {message && (
+              <div
+                className={`p-3 rounded-md flex items-start space-x-2 text-sm ${
+                  message.type === 'success'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                {message.type === 'success' ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                )}
+                <span>{message.text}</span>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button type="submit" disabled={loading} className="w-full flex justify-center py-2.5 font-bold">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : 'สร้างบัญชีผู้เขียน'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-3 text-center justify-center pb-6 bg-slate-50 border-t border-slate-100 rounded-b-lg">
+          <p className="text-xs text-slate-500 mt-2">
+            มีบัญชีผู้เขียนแล้ว?{' '}
+            <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center">
+              <ArrowLeft className="w-3 h-3 mr-0.5" /> กลับไปหน้าเข้าสู่ระบบ
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
