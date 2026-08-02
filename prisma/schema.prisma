@@ -72,3 +72,20 @@ model Transaction {
   totalAmount Float
   createdAt   DateTime  @default(now())
 }
+
+model CustomValuation {
+  id             String   @id @default(cuid())
+  userId         String
+  symbol         String
+  name           String
+  sector         String
+  currentPrice   Float
+  intrinsicValue Float
+  marginOfSafety Float
+  modelUsed      String
+  breakdown      Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
