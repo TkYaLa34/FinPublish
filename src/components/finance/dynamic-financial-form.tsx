@@ -11,7 +11,7 @@ import { ConfidenceIndicator } from './confidence-indicator';
 import { Calculator, HelpCircle, ArrowUpRight, ArrowDownRight, CheckCircle2, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 // ============================================================================
-// CONFIGURATION-DRIVEN SCHEMA DEFINITIONS (SECTION 1 & 2) - FULLY LOCALIZED
+// CONFIGURATION-DRIVEN SCHEMA DEFINITIONS (SECTION 1 & 2)
 // ============================================================================
 
 export interface FormFieldSchema {
@@ -48,58 +48,58 @@ export interface SectorConfig {
 export const SECTORS: SectorConfig[] = [
   {
     id: 'TECH',
-    name: 'เทคโนโลยี (Technology)',
+    name: 'Technology',
     subSectors: [
-      { id: 'tech_software', name: 'ซอฟต์แวร์ และ คลาวด์เซอร์วิส', modelId: 'tech_multi_year' },
-      { id: 'tech_internet', name: 'แพลตฟอร์มอินเทอร์เน็ต', modelId: 'tech_multi_year' },
+      { id: 'tech_software', name: 'Software & Cloud Services', modelId: 'tech_multi_year' },
+      { id: 'tech_internet', name: 'Internet Platforms', modelId: 'tech_multi_year' },
     ]
   },
   {
     id: 'SEMICONDUCTOR',
-    name: 'เซมิคอนดักเตอร์ (Semiconductor)',
+    name: 'Semiconductor',
     subSectors: [
-      { id: 'semi_foundry', name: 'โรงงานผลิตชิป และการประกอบ (Foundry)', modelId: 'semi_multi_year' },
-      { id: 'semi_design', name: 'ผู้ออกแบบชิป (Fabless)', modelId: 'semi_multi_year' },
+      { id: 'semi_foundry', name: 'Semiconductor Foundry & Fab', modelId: 'semi_multi_year' },
+      { id: 'semi_design', name: 'Fabless IC Design', modelId: 'semi_multi_year' },
     ]
   },
   {
     id: 'FINANCIAL',
-    name: 'บริการทางการเงิน และธนาคาร (Financials)',
+    name: 'Financial Services (Banks)',
     subSectors: [
-      { id: 'fin_banking', name: 'ธนาคารพาณิชย์', modelId: 'financial_bank' },
-      { id: 'fin_assets', name: 'บริษัทหลักทรัพย์จัดการกองทุน', modelId: 'financial_bank' },
+      { id: 'fin_banking', name: 'Commercial Banking', modelId: 'financial_bank' },
+      { id: 'fin_assets', name: 'Asset Management', modelId: 'financial_bank' },
     ]
   },
   {
     id: 'INSURANCE',
-    name: 'ประกันภัย (Insurance)',
+    name: 'Insurance',
     subSectors: [
-      { id: 'ins_life', name: 'ประกันชีวิต และบำนาญ', modelId: 'insurance_ev' },
-      { id: 'ins_pnc', name: 'ประกันวินาศภัย', modelId: 'insurance_ev' },
+      { id: 'ins_life', name: 'Life & Annuity', modelId: 'insurance_ev' },
+      { id: 'ins_pnc', name: 'Property & Casualty', modelId: 'insurance_ev' },
     ]
   },
   {
     id: 'REIT',
-    name: 'กองทรัสต์เพื่อการลงทุนในอสังหาริมทรัพย์ (REIT)',
+    name: 'Real Estate (REIT)',
     subSectors: [
-      { id: 'reit_residential', name: 'อสังหาริมทรัพย์เพื่อการอยู่อาศัย', modelId: 'reit_advanced' },
-      { id: 'reit_commercial', name: 'อสังหาริมทรัพย์เพื่อการพาณิชย์ และสำนักงาน', modelId: 'reit_advanced' },
+      { id: 'reit_residential', name: 'Residential Real Estate', modelId: 'reit_advanced' },
+      { id: 'reit_commercial', name: 'Commercial & Office REITs', modelId: 'reit_advanced' },
     ]
   },
   {
     id: 'UTILITIES',
-    name: 'สาธารณูปโภค (Utilities)',
+    name: 'Regulated Utilities',
     subSectors: [
-      { id: 'util_power', name: 'โรงไฟฟ้า และการส่งจ่ายพลังงาน', modelId: 'utilities_regulated' },
-      { id: 'util_water', name: 'การประปา และระบบการจัดการน้ำ', modelId: 'utilities_regulated' },
+      { id: 'util_power', name: 'Electricity Transmission', modelId: 'utilities_regulated' },
+      { id: 'util_water', name: 'Water Distribution Systems', modelId: 'utilities_regulated' },
     ]
   },
   {
     id: 'OTHER',
-    name: 'กลุ่มอุตสาหกรรมอื่นๆ',
+    name: 'Other Sectors',
     subSectors: [
-      { id: 'other_retail', name: 'ค้าปลีก และสินค้าอุปโภคบริโภค', modelId: 'other_generic' },
-      { id: 'other_mfg', name: 'โรงงานอุตสาหกรรม และการผลิต', modelId: 'other_generic' },
+      { id: 'other_retail', name: 'Retail & Consumer Goods', modelId: 'other_generic' },
+      { id: 'other_mfg', name: 'Manufacturing & Industrial', modelId: 'other_generic' },
     ]
   }
 ];
@@ -108,97 +108,97 @@ export const SECTORS: SectorConfig[] = [
 export const VALUATION_MODELS: Record<string, ValuationModelConfig> = {
   tech_multi_year: {
     id: 'tech_multi_year',
-    name: 'โมเดลกระแสเงินสดหลายปี และอัตรากำไรจากการดำเนินงาน (Technology Multi-Year FCF)',
+    name: 'Technology Multi-Year FCF & Operating Margin Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 150, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมดที่ถือโดยผู้ถือหุ้น' },
-      { name: 'multiYearFcf', label: 'กระแสเงินสดอิสระย้อนหลังรายปี ($)', type: 'multiyear', defaultValue: [75000000, 85000000, 98000000], required: true, description: 'ประวัติกระแสเงินสดอิสระ (ต้องการข้อมูลอย่างน้อย 3 ปีย้อนหลัง)' },
-      { name: 'growthRate', label: 'อัตราการเติบโตของรายได้ (Revenue Growth Rate)', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 1.0, required: true, description: 'อัตราการเติบโตของรายได้ที่คาดการณ์แบบทบต้น' },
-      { name: 'operatingMargin', label: 'อัตรากำไรจากการดำเนินงาน (Operating Margin %)', type: 'percentage', defaultValue: 0.22, min: 0.0, max: 0.95, required: true, description: 'สัดส่วนกำไรจากการดำเนินงาน (EBIT) เทียบกับรายได้รวม' },
-      { name: 'terminalGrowthRate', label: 'อัตราการเติบโตในปีสุดท้าย (Terminal Growth Rate)', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'อัตราการเติบโตของธุรกิจไปสู่อนาคตอย่างไม่มีที่สิ้นสุด' },
-      { name: 'discountRate', label: 'อัตราคิดลด / ต้นทุนทางการเงิน (WACC)', type: 'percentage', defaultValue: 0.09, min: 0.02, max: 0.4, required: true, description: 'อัตราผลตอบแทนขั้นต่ำที่ผู้ลงทุนต้องการ / ต้นทุนเฉลี่ยของเงินทุน' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 150, min: 0.1, required: true, description: 'Current market value of one share.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'Total outstanding share volume.' },
+      { name: 'multiYearFcf', label: 'Multi-Year Free Cash Flows ($)', type: 'multiyear', defaultValue: [75000000, 85000000, 98000000], required: true, description: 'FCF series (Requires at least 3 years for historical cycles).' },
+      { name: 'growthRate', label: 'Revenue Growth Rate', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 1.0, required: true, description: 'Projected annualized tech segment revenue growth.' },
+      { name: 'operatingMargin', label: 'Operating Margin (%)', type: 'percentage', defaultValue: 0.22, min: 0.0, max: 0.95, required: true, description: 'EBIT relative to total projected revenues.' },
+      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'Perpetual terminal growth rate multiplier.' },
+      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.09, min: 0.02, max: 0.4, required: true, description: 'The cost of capital used to discount future cash flows.' }
     ]
   },
   semi_multi_year: {
     id: 'semi_multi_year',
-    name: 'โมเดลวัฏจักรอัตรากำไรขั้นต้น และการลงทุนเครื่องจักร (Semiconductor Margin & CapEx)',
+    name: 'Semiconductor Cyclical Gross Margin & CapEx Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 120, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 8000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'multiYearFcf', label: 'กระแสเงินสดอิสระย้อนหลังรายปี ($)', type: 'multiyear', defaultValue: [120000000, 140000000, 95000000], required: true, description: 'กระแสเงินสดสะท้อนตามรอบวัฏจักรเซมิคอนดักเตอร์' },
-      { name: 'grossMargin', label: 'อัตรากำไรขั้นต้น (Gross Margin %)', type: 'percentage', defaultValue: 0.52, min: 0.05, max: 0.95, required: true, description: 'อัตรากำไรขั้นต้นจากการผลิตแผ่นเวเฟอร์และการบรรจุแพ็คเกจชิป' },
-      { name: 'capEx', label: 'ค่าใช้จ่ายลงทุนซื้อสินทรัพย์ถาวร (CapEx) ($)', type: 'currency', defaultValue: 45000000, required: true, description: 'เงินทุนในการจัดหาห้องคลีนรูมและเครื่องจักรผลิตชิปขั้นสูง (Lithography)' },
-      { name: 'growthRate', label: 'อัตราการเติบโตของรายได้ (Revenue Growth Rate)', type: 'percentage', defaultValue: 0.15, min: -0.5, max: 1.5, required: true, description: 'อัตราการเติบโตของอุตสาหกรรมในรอบวัฏจักร' },
-      { name: 'terminalGrowthRate', label: 'อัตราการเติบโตในปีสุดท้าย (Terminal Growth Rate)', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'อัตราเติบโตในระยะยาวเมื่อตลาดอิ่มตัว' },
-      { name: 'discountRate', label: 'อัตราคิดลด / ต้นทุนทางการเงิน (WACC)', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'อัตราผลตอบแทนขั้นต่ำที่คาดหวัง' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 120, min: 0.1, required: true, description: 'Current market value per share.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 8000000, min: 1000, required: true, description: 'Total shares outstanding.' },
+      { name: 'multiYearFcf', label: 'Multi-Year Free Cash Flows ($)', type: 'multiyear', defaultValue: [120000000, 140000000, 95000000], required: true, description: 'FCF series reflecting hardware cycle dynamics.' },
+      { name: 'grossMargin', label: 'Gross Margin (%)', type: 'percentage', defaultValue: 0.52, min: 0.05, max: 0.95, required: true, description: 'Hardware fabrication and packaging gross profitability margin.' },
+      { name: 'capEx', label: 'Capital Expenditures (CapEx) ($)', type: 'currency', defaultValue: 45000000, required: true, description: 'Reinvestment in semiconductor cleanrooms and advanced lithography machinery.' },
+      { name: 'growthRate', label: 'Semiconductor Revenue Growth', type: 'percentage', defaultValue: 0.15, min: -0.5, max: 1.5, required: true, description: 'Forecasted cyclic revenue growth rate.' },
+      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.025, min: 0.0, max: 0.08, required: true, description: 'Perpetual growth factor.' },
+      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'The required rate of return multiplier.' }
     ]
   },
   financial_bank: {
     id: 'financial_bank',
-    name: 'โมเดลมูลค่าทางบัญชี และมูลค่าส่วนเกิน (Commercial Bank Book Value & Residual Income)',
+    name: 'Commercial Bank Book Value & Residual Income Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 45, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 5000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'bookValue', label: 'มูลค่าทางบัญชีรวมของส่วนผู้ถือหุ้น (Book Value) ($)', type: 'currency', defaultValue: 250000000, required: true, description: 'สินทรัพย์รวมหักด้วยหนี้สินรวมตามงบดุลของธนาคาร' },
-      { name: 'returnOnEquity', label: 'อัตราผลตอบแทนต่อส่วนของผู้ถือหุ้น (ROE)', type: 'percentage', defaultValue: 0.13, min: -0.5, max: 1.0, required: true, description: 'กำไรสุทธิหารด้วยส่วนของผู้ถือหุ้นเฉลี่ย' },
-      { name: 'dividendPerShare', label: 'เงินปันผลต่อหุ้น (Dividend Per Share) ($)', type: 'currency', defaultValue: 1.80, description: 'เงินปันผลจ่ายเป็นเงินสดต่อหุ้นสะสมในรอบปี' },
-      { name: 'requiredReturn', label: 'ต้นทุนส่วนของผู้ถือหุ้น / อัตราคิดลด (Cost of Equity)', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'อัตราผลตอบแทนขั้นต่ำที่นักลงทุนต้องการจากการลงทุนในหุ้นธนาคาร' },
-      { name: 'growthRate', label: 'อัตราการเติบโตที่คาดหวัง (Expected Growth Rate)', type: 'percentage', defaultValue: 0.04, min: -0.1, max: 0.15, description: 'การเติบโตอย่างต่อเนื่องของกำไรส่วนเกินสะสมของธนาคาร' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 45, min: 0.1, required: true, description: 'Current market value per share.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 5000000, min: 1000, required: true, description: 'Outstanding share volume.' },
+      { name: 'bookValue', label: 'Book Value ($)', type: 'currency', defaultValue: 250000000, required: true, description: 'Total common equity / net book value on the balance sheet.' },
+      { name: 'returnOnEquity', label: 'Return on Equity (ROE)', type: 'percentage', defaultValue: 0.13, min: -0.5, max: 1.0, required: true, description: 'Net income divided by common book equity.' },
+      { name: 'dividendPerShare', label: 'Dividend Per Share ($)', type: 'currency', defaultValue: 1.80, description: 'Total annualized dividend payout per common share.' },
+      { name: 'requiredReturn', label: 'Cost of Equity / Required Return', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'Minimum expected rate of return for equity investors.' },
+      { name: 'growthRate', label: 'Expected Growth Rate', type: 'percentage', defaultValue: 0.04, min: -0.1, max: 0.15, description: 'Perpetual growth of the bank residual income asset base.' }
     ]
   },
   insurance_ev: {
     id: 'insurance_ev',
-    name: 'โมเดลประเมินมูลค่าฝังในธุรกิจประกันภัย (Insurance Embedded Value Model)',
+    name: 'Insurance Embedded Value Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 60, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 4000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'embeddedValue', label: 'มูลค่าฝังในรวม (Embedded Value - EV) ($)', type: 'currency', defaultValue: 280000000, required: true, description: 'มูลค่าสินทรัพย์สุทธิทางบัญชีบวกด้วยมูลค่าปัจจุบันของกรมธรรม์ประกันภัยที่มีผลอยู่' },
-      { name: 'returnOnEquity', label: 'อัตราผลตอบแทนต่อส่วนของผู้ถือหุ้น (ROE)', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 0.8, required: true, description: 'อัตราผลตอบแทนในการจัดสรรเบี้ยประกันภัยสะสม' },
-      { name: 'dividendPerShare', label: 'เงินปันผลต่อหุ้นจ่ายต่อปี ($)', type: 'currency', defaultValue: 1.50, description: 'กระแสเงินปันผลตอบแทนจ่ายต่อหุ้น' },
-      { name: 'growthRate', label: 'อัตราการเติบโตที่คาดหวัง (Expected Growth Rate)', type: 'percentage', defaultValue: 0.035, min: -0.05, max: 0.12, description: 'อัตราการเติบโตระยะยาวของยอดขายกรมธรรม์ประกันชีวิตหรือวินาศภัย' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 60, min: 0.1, required: true, description: 'Current market share value.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 4000000, min: 1000, required: true, description: 'Outstanding share volume.' },
+      { name: 'embeddedValue', label: 'Embedded Value (EV) ($)', type: 'currency', defaultValue: 280000000, required: true, description: 'Net asset value of the insurance operations plus present value of active in-force business.' },
+      { name: 'returnOnEquity', label: 'Return on Equity (ROE)', type: 'percentage', defaultValue: 0.12, min: -0.2, max: 0.8, required: true, description: 'Operating return on capital.' },
+      { name: 'dividendPerShare', label: 'Dividend Payout ($)', type: 'currency', defaultValue: 1.50, description: 'Annualized dividend stream.' },
+      { name: 'growthRate', label: 'Growth Rate', type: 'percentage', defaultValue: 0.035, min: -0.05, max: 0.12, description: 'The long-term growth rate of life/annuity portfolios.' }
     ]
   },
   reit_advanced: {
     id: 'reit_advanced',
-    name: 'โมเดลมูลค่าสินทรัพย์สุทธิ และอัตรากำไรจากการดำเนินงาน (REIT NAV & AFFO Multiple Model)',
+    name: 'REIT Net Asset Value & AFFO Multiple Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 80, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 15000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'nav', label: 'มูลค่าสินทรัพย์สุทธิรายหุ้น (NAV Per Share) ($)', type: 'currency', defaultValue: 85, required: true, description: 'มูลค่าตลาดของอสังหาริมทรัพย์และที่ดินหักด้วยหนี้สินกองทรัสต์หารด้วยหุ้นทั้งหมด' },
-      { name: 'occupancyRate', label: 'อัตราการเช่าพื้นที่เฉลี่ย (Occupancy Rate %)', type: 'percentage', defaultValue: 0.94, min: 0.4, max: 1.0, required: true, description: 'สัดส่วนพื้นที่ที่มีผู้เช่าเทียบกับพื้นที่ให้เช่าทั้งหมดในกองทรัสต์' },
-      { name: 'affo', label: 'กระแสเงินสดจริงจากการดำเนินงาน (AFFO) ($)', type: 'currency', defaultValue: 120000000, required: true, description: 'FFO ที่ปรับปรุงด้วยค่าปรับปรุงรักษาสภาพอาคารและสิทธิการเช่าคงที่' },
-      { name: 'distributionPerUnit', label: 'เงินปันผลตอบแทนหน่วยลงทุนต่อหุ้น (DPU) ($)', type: 'currency', defaultValue: 4.20, description: 'อัตราจ่ายเงินปันผลหน่วยทรัสต์รายปีต่อหน่วยลงทุน' },
-      { name: 'growthRate', label: 'อัตราการเติบโตที่คาดหวัง (Expected Growth Rate)', type: 'percentage', defaultValue: 0.03, min: -0.05, max: 0.12, description: 'อัตราการเติบโตของค่าเช่าตามสัญญาในรอบสัญญาระยะยาว' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 80, min: 0.1, required: true, description: 'Current market share price.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 15000000, min: 1000, required: true, description: 'Total shares outstanding.' },
+      { name: 'nav', label: 'Net Asset Value (NAV) Per Share ($)', type: 'currency', defaultValue: 85, required: true, description: 'Calculated fair asset value of properties minus liabilities per share.' },
+      { name: 'occupancyRate', label: 'Occupancy Rate (%)', type: 'percentage', defaultValue: 0.94, min: 0.4, max: 1.0, required: true, description: 'Percentage of leased real-estate space across portfolios.' },
+      { name: 'affo', label: 'Adjusted Funds From Operations (AFFO) ($)', type: 'currency', defaultValue: 120000000, required: true, description: 'Cash FFO adjusted for capital lease maintenance and recurring tenant improvements.' },
+      { name: 'distributionPerUnit', label: 'Distribution Per Unit (DPU) ($)', type: 'currency', defaultValue: 4.20, description: 'Annualized dividend distribution per REIT share.' },
+      { name: 'growthRate', label: 'Expected Growth Rate', type: 'percentage', defaultValue: 0.03, min: -0.05, max: 0.12, description: 'Long term compound growth of rent agreements.' }
     ]
   },
   utilities_regulated: {
     id: 'utilities_regulated',
-    name: 'โมเดลประเมินกิจการสาธารณูปโภคตามฐานหนี้สินและค่าเสื่อม (Regulated Utilities EBITDA & Leverage)',
+    name: 'Regulated Utilities EBITDA & CapEx Blueprint',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 55, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 12000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'ebitda', label: 'กำไรก่อนหักภาษี ดอกเบี้ย และค่าเสื่อม (Utility EBITDA) ($)', type: 'currency', defaultValue: 180000000, required: true, description: 'กำไรจากธุรกิจแกนหลักเพื่อจ่ายดอกเบี้ยพันธบัตรรัฐบาลและสาธารณูปโภคขั้นพื้นฐาน' },
-      { name: 'capEx', label: 'การลงทุนโครงสร้างพื้นฐานใหม่ (Infrastructure CapEx) ($)', type: 'currency', defaultValue: 65000000, required: true, description: 'การขยายกำลังจ่ายพลังงาน ท่อน้ำประปา หรือสายส่งไฟฟ้า' },
-      { name: 'totalDebt', label: 'หนี้สินรวมของกิจการสาธารณูปโภค ($)', type: 'currency', defaultValue: 450000000, required: true, description: 'ภาระหนี้สินเพื่อการพัฒนาโรงขยายระบบสาธารณูปโภคระยะยาว' },
-      { name: 'growthRate', label: 'อัตราเติบโตของฐานทรัพย์สินควบคุม', type: 'percentage', defaultValue: 0.025, min: -0.05, max: 0.10, description: 'อัตราเติบโตของการเรียกเก็บค่าบริการ (Tariff) ภายใต้การควบคุมของรัฐ' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 55, min: 0.1, required: true, description: 'Current market share price.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 12000000, min: 1000, required: true, description: 'Outstanding share volume.' },
+      { name: 'ebitda', label: 'Utility EBITDA ($)', type: 'currency', defaultValue: 180000000, required: true, description: 'Regulated utility earnings before interest, tax, and depreciation.' },
+      { name: 'capEx', label: 'Infrastructure CapEx ($)', type: 'currency', defaultValue: 65000000, required: true, description: 'Reinvestment in utility grids and pipeline assets.' },
+      { name: 'totalDebt', label: 'Utility Debt Liabilities ($)', type: 'currency', defaultValue: 450000000, required: true, description: 'Total outstanding utilities bonds and liabilities.' },
+      { name: 'growthRate', label: 'Regulated Assets Growth Rate', type: 'percentage', defaultValue: 0.025, min: -0.05, max: 0.10, description: 'Regulated tariff growth factor.' }
     ]
   },
   other_generic: {
     id: 'other_generic',
-    name: 'โมเดลมาตรฐานกระแสเงินสดคิดลด (Standard 5-Year DCF Blueprint)',
+    name: 'Other Sectors DCF Blueprint with Custom Fields',
     fields: [
-      { name: 'price', label: 'ราคาหุ้นปัจจุบัน ($)', type: 'currency', defaultValue: 50, min: 0.1, required: true, description: 'ราคาซื้อขายปัจจุบันในตลาดต่อหนึ่งหุ้น' },
-      { name: 'outstandingShares', label: 'จำนวนหุ้นทั้งหมด (Outstanding Shares)', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'จำนวนหุ้นจดทะเบียนทั้งหมด' },
-      { name: 'freeCashFlow', label: 'กระแสเงินสดอิสระปีฐาน ($)', type: 'currency', defaultValue: 40000000, required: true, description: 'กระแสเงินสดจากการดำเนินงานลบออกด้วยค่าใช้จ่ายฝ่ายทุนปีล่าสุด' },
-      { name: 'growthRate', label: 'อัตราการเติบโตเฉลี่ยทบต้นต่อปี', type: 'percentage', defaultValue: 0.07, min: -0.2, max: 1.0, required: true, description: 'อัตราเติบโตเฉลี่ยที่คาดว่าจะรักษาระดับได้ในช่วง 5 ปีถัดไป' },
-      { name: 'terminalGrowthRate', label: 'อัตราเติบโตในปีที่ไม่มีที่สิ้นสุด (Terminal Growth Rate)', type: 'percentage', defaultValue: 0.02, min: 0.0, max: 0.08, required: true, description: 'อัตราเติบโตระยะยาวอย่างยั่งยืนของระบบเศรษฐกิจ' },
-      { name: 'discountRate', label: 'อัตราคิดลด / ต้นทุนทางการเงิน (WACC)', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'ต้นทุนเฉลี่ยของเงินทุนที่ถ่วงน้ำหนักเพื่อคิดลดกระแสเงินสด' }
+      { name: 'price', label: 'Current Share Price ($)', type: 'currency', defaultValue: 50, min: 0.1, required: true, description: 'Current market value.' },
+      { name: 'outstandingShares', label: 'Outstanding Shares', type: 'number', defaultValue: 10000000, min: 1000, required: true, description: 'Outstanding shares.' },
+      { name: 'freeCashFlow', label: 'Base Year Free Cash Flow ($)', type: 'currency', defaultValue: 40000000, required: true, description: 'Operating cash flow minus CapEx.' },
+      { name: 'growthRate', label: 'Annual Growth Rate', type: 'percentage', defaultValue: 0.07, min: -0.2, max: 1.0, required: true, description: 'Annual compound growth rate.' },
+      { name: 'terminalGrowthRate', label: 'Terminal Growth Rate', type: 'percentage', defaultValue: 0.02, min: 0.0, max: 0.08, required: true, description: 'Growth into infinity.' },
+      { name: 'discountRate', label: 'Discount Rate / WACC', type: 'percentage', defaultValue: 0.10, min: 0.02, max: 0.4, required: true, description: 'Cost of capital.' }
     ]
   }
 };
 
 // ============================================================================
-// REUSABLE TYPED INPUT COMPONENTS (SECTION 3) - THAI TEXT
+// REUSABLE TYPED INPUT COMPONENTS (SECTION 3)
 // ============================================================================
 
 interface BaseInputProps {
@@ -321,12 +321,12 @@ export const MultiYearListInput = React.memo(({ label, value = [], onChange, err
       <div className="flex flex-wrap gap-2">
         {value.map((fcf, idx) => (
           <div key={idx} className="flex items-center space-x-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-300 text-xs font-semibold rounded-md shadow-sm">
-            <span>ปีที่ {idx + 1}: ${fcf.toLocaleString()}</span>
+            <span>Year {idx + 1}: ${fcf.toLocaleString()}</span>
             <button
               type="button"
               onClick={() => handleRemove(idx)}
               className="text-slate-400 hover:text-rose-500 transition-colors"
-              title="ลบปีนี้ออก"
+              title="Remove Year"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -337,7 +337,7 @@ export const MultiYearListInput = React.memo(({ label, value = [], onChange, err
       <div className="flex items-center space-x-2">
         <input
           type="number"
-          placeholder="ระบุตัวเลข เช่น 95000000"
+          placeholder="e.g. 95000000"
           value={newValStr}
           onChange={(e) => setNewValStr(e.target.value)}
           className="flex-1 px-3 py-1.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs rounded-md outline-none focus:border-indigo-500"
@@ -348,10 +348,10 @@ export const MultiYearListInput = React.memo(({ label, value = [], onChange, err
           className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-1.5 flex items-center space-x-1"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>เพิ่มมูลค่าของปีถัดไป</span>
+          <span>Add Year</span>
         </Button>
       </div>
-      <p className="text-[10px] text-slate-400 dark:text-slate-500">กรุณาเรียงลำดับกระแสเงินสดตามปีประวัติศาสตร์อย่างถูกต้อง (ต้องการข้อมูลอย่างน้อย 3 ปี)</p>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500">Provide chronologically ordered cash flows. Required: At least 3 years.</p>
     </div>
   );
 });
@@ -380,7 +380,7 @@ const formatBreakdownValue = (key: string, value: any): string => {
 };
 
 // ============================================================================
-// MAIN COMPONENT (SECTIONS 4, 5, 6, 7, 8, 9) - THAI TERMINOLOGY
+// MAIN COMPONENT (SECTIONS 4, 5, 6, 7, 8, 9)
 // ============================================================================
 
 export const DynamicFinancialForm = () => {
@@ -435,30 +435,30 @@ export const DynamicFinancialForm = () => {
     setFormErrors({});
   }, [activeModel]);
 
-  // Real-time Validation Engine (Section 4) - THAI MESSAGES
+  // Real-time Validation Engine (Section 4)
   const validateField = useCallback((name: string, value: any, schema: FormFieldSchema): string => {
     if (schema.required && (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0))) {
-      return `กรุณากรอกข้อมูลในช่อง "${schema.label}" (จำเป็นต้องกรอก)`;
+      return `${schema.label} is required.`;
     }
 
     if (schema.type === 'multiyear') {
       if (!Array.isArray(value) || value.length < 3) {
-        return 'จำเป็นต้องระบุกระแสเงินสดอิสระรายปีย้อนหลังอย่างน้อย 3 ปี เพื่อให้ได้ข้อมูลที่ครบวัฏจักร';
+        return 'At least three years of cash flows are required.';
       }
     }
 
     if (schema.type === 'percentage') {
       if (typeof value === 'number' && (value < 0 || value > 1)) {
-        return 'อัตราส่วนหรืออัตราร้อยละต้องมีค่าอยู่ระหว่าง 0% ถึง 100% เท่านั้น';
+        return 'Percentage values must be between 0% and 100%.';
       }
     }
 
     if (schema.type === 'currency' || schema.type === 'number') {
       if (typeof value === 'number' && value < 0) {
-        return 'ข้อมูลตัวเลขต้องมีค่ามากกว่าศูนย์หรือเป็นจำนวนบวกเท่านั้น';
+        return 'Value must be a positive number.';
       }
       if (schema.min !== undefined && typeof value === 'number' && value < schema.min) {
-        return `ค่าของข้อมูล "${schema.label}" ต้องมีค่าไม่ต่ำกว่า ${schema.min}`;
+        return `${schema.label} must be at least ${schema.min}.`;
       }
     }
 
@@ -553,10 +553,10 @@ export const DynamicFinancialForm = () => {
       <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
         <CardTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <Calculator className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-          <span>ศูนย์วิเคราะห์ประเมินมูลค่าตามรายกลุ่มอุตสาหกรรม (Multi-Sector Valuation Lab)</span>
+          <span>Advanced Multi-Sector Valuation Lab</span>
         </CardTitle>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          คำนวณมูลค่าหุ้นโดยใช้โมเดลเฉพาะเจาะจงที่ถูกออกแบบตามอุตสาหกรรมเป้าหมาย เช่น อสังหาริมทรัพย์, ประกันภัย, ซอฟต์แวร์ และธนาคารพาณิชย์
+          Load configuration-driven blueprints specifically calibrated for Banks, Software, Utilities, REITs, or Insurers.
         </p>
       </CardHeader>
 
@@ -564,7 +564,7 @@ export const DynamicFinancialForm = () => {
         {/* Step 1: Sector / SubSector Dropdowns Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-850 p-4 border border-slate-100 dark:border-slate-800 rounded-xl">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">กลุ่มอุตสาหกรรมเป้าหมาย</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Target Asset Sector</label>
             <select
               value={selectedSectorId}
               onChange={(e) => setSelectedSectorId(e.target.value as SectorType)}
@@ -577,7 +577,7 @@ export const DynamicFinancialForm = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">กลุ่มย่อยอุตสาหกรรม</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Sub-Sector Focus</label>
             <select
               value={selectedSubSectorId}
               onChange={(e) => setSelectedSubSectorId(e.target.value)}
@@ -590,7 +590,7 @@ export const DynamicFinancialForm = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">โมเดลประเมินมูลค่าที่เลือกใช้</label>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Valuation Blueprint Model</label>
             <div className="px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-300">
               {activeModel.name}
             </div>
@@ -649,7 +649,7 @@ export const DynamicFinancialForm = () => {
         {!isFormValid && (
           <div className="p-4 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 rounded-xl text-xs font-semibold flex items-center space-x-2">
             <AlertCircle className="w-5 h-5 text-rose-500" />
-            <span>หยุดคำนวณชั่วคราว: กรุณากรอกข้อมูลในช่องสีแดงที่กำหนดให้ครบถ้วนและถูกต้อง</span>
+            <span>Valuation calculations paused. Please complete all required inputs and correct any validation issues.</span>
           </div>
         )}
 
@@ -658,19 +658,19 @@ export const DynamicFinancialForm = () => {
           <div className="border-t border-slate-100 dark:border-slate-800 pt-6 space-y-6 animate-fadeIn">
             <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
               <CheckCircle2 className="w-5 h-5" />
-              <p className="text-sm font-bold uppercase tracking-wider">ผลลัพธ์การวิเคราะห์ประเมินมูลค่าตามปัจจัยพื้นฐาน</p>
+              <p className="text-sm font-bold uppercase tracking-wider">Evaluation Intrinsic Valuation Results</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900 p-5 rounded-2xl">
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">ราคาหุ้นในตลาดปัจจุบัน</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Current Share Price</span>
                 <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
                   ${valuationResult.currentPrice.toFixed(2)}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">มูลค่าตามปัจจัยพื้นฐานที่แท้จริง</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Intrinsic Share Value</span>
                 <p className="text-3xl font-extrabold text-indigo-700 dark:text-indigo-300">
                   ${valuationResult.intrinsicValue.toFixed(2)}
                 </p>
@@ -678,7 +678,7 @@ export const DynamicFinancialForm = () => {
 
               <div className="space-y-1 flex flex-col justify-between h-full">
                 <div className="space-y-1">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">ส่วนเผื่อความปลอดภัย (Margin of Safety)</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Margin of Safety</span>
                   <div className="flex items-center space-x-2">
                     <span className={`text-2xl font-black ${
                       valuationResult.marginOfSafety >= 10
@@ -690,12 +690,12 @@ export const DynamicFinancialForm = () => {
                       {valuationResult.marginOfSafety.toFixed(1)}%
                     </span>
 
-                    {/* Dynamic integration of new high-fidelity ValuationBadge */}
+                    {/* Dynamic integration of new high-fidelity ValuationBadge (User request) */}
                     <ValuationBadge status={valuationResult.marginOfSafety >= 10 ? 'undervalued' : valuationResult.marginOfSafety > -5 ? 'fair' : 'overvalued'} />
                   </div>
                 </div>
 
-                {/* Reusable ConfidenceIndicator integration */}
+                {/* Reusable ConfidenceIndicator integration (User Request) */}
                 <div className="pt-2">
                   <ConfidenceIndicator score={confidenceScore} />
                 </div>
@@ -704,7 +704,7 @@ export const DynamicFinancialForm = () => {
 
             {/* Model Breakdown Fields Row */}
             <div className="bg-slate-50 dark:bg-slate-800/40 p-4 border border-slate-100 dark:border-slate-800 rounded-xl space-y-3">
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">พารามิเตอร์ประกอบการพิจารณาโมเดล (Breakdown Analyzed)</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Breakdown Parameters Analyzed</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 {Object.entries(valuationResult.breakdown).map(([key, value]) => (
                   <div key={key} className="space-y-1">
