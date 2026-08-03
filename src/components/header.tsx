@@ -22,19 +22,19 @@ export const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-            กระดานข้อมูลตลาด (Market Feed)
+            Market Feed
           </Link>
           <Link href="/dashboard" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-            จัดการบทความ (Author CMS)
+            Author CMS
           </Link>
           <Link href="/login" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors">
-            เข้าสู่ระบบ (Sign In)
+            Sign In
           </Link>
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-            title="สลับโหมดสีสว่าง/มืด"
+            title="Toggle theme"
             type="button"
           >
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
@@ -68,21 +68,21 @@ export const Header = () => {
             onClick={() => setIsOpen(false)}
             className="block text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400"
           >
-            กระดานข้อมูลตลาด (Market Feed)
+            Market Feed
           </Link>
           <Link
             href="/dashboard"
             onClick={() => setIsOpen(false)}
             className="block text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400"
           >
-            จัดการบทความ (Author CMS)
+            Author CMS
           </Link>
           <Link
             href="/login"
             onClick={() => setIsOpen(false)}
             className="block text-center w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
           >
-            เข้าสู่ระบบ (Sign In)
+            Sign In
           </Link>
         </div>
       )}
